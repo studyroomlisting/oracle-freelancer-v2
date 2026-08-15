@@ -13,6 +13,10 @@ export default function RescheduleButton({ orderId }: { orderId: string }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!newTime) return;
+    if (new Date(newTime).getTime() <= Date.now()) {
+      setError("Pick a time in the future");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -43,7 +47,14 @@ export default function RescheduleButton({ orderId }: { orderId: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-2">
-      <input type="datetime-local" className="input" value={newTime} onChange={(e) => setNewTime(e.target.value)} required />
+      <input
+        type="datetime-local"
+        className="input"
+        min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+        value={newTime}
+        onChange={(e) => setNewTime(e.target.value)}
+        required
+      />
       <button type="submit" disabled={loading} className="btn-secondary text-xs py-1.5 px-3 shrink-0">
         {loading ? "Saving..." : "Save"}
       </button>

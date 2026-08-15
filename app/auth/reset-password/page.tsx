@@ -62,11 +62,11 @@ export default function ResetPasswordPage({ searchParams }: { searchParams: { to
         {error && <p className="text-sm text-red-600">{error}</p>}
         <div>
           <label className="text-sm text-neutral-700 block mb-1">New password</label>
-          <input type="password" required minLength={8} className="input" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <input type="password" required minLength={8} maxLength={72} className="input" value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
         <div>
           <label className="text-sm text-neutral-700 block mb-1">Confirm password</label>
-          <input type="password" required minLength={8} className="input" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+          <input type="password" required minLength={8} maxLength={72} className="input" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
         </div>
         <button type="submit" disabled={submitting} className="btn-primary">
           {submitting ? "Saving..." : "Reset password"}

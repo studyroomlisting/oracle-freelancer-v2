@@ -61,6 +61,7 @@ export default function ReviewForm({ orderId }: { orderId: string }) {
         onChange={(e) => setComment(e.target.value)}
         required
         minLength={10}
+        maxLength={2000}
       />
       <button type="submit" disabled={submitting} className="btn-primary self-start">
         {submitting ? "Submitting..." : "Submit review"}

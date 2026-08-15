@@ -44,15 +44,17 @@ export default function SubmitCertificationForm() {
         <input
           className="input"
           placeholder="Certification name, e.g. Oracle Cloud SCM 2024 Certified Implementation Specialist"
+          minLength={5}
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
         />
-        <input className="input" placeholder="Issuer" value={issuer} onChange={(e) => setIssuer(e.target.value)} required />
+        <input className="input" placeholder="Issuer" minLength={2} value={issuer} onChange={(e) => setIssuer(e.target.value)} required />
       </div>
       <input
+        type="url"
         className="input"
-        placeholder="Credential URL (optional)"
+        placeholder="Credential URL (optional) — https://..."
         value={credentialUrl}
         onChange={(e) => setCredentialUrl(e.target.value)}
       />

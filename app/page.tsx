@@ -34,6 +34,7 @@ export default async function HomePage() {
           <form action="/browse" className="flex max-w-xl bg-white rounded-lg overflow-hidden shadow-xl">
             <input
               name="q"
+              maxLength={200}
               className="flex-1 border-none px-4 py-4 text-[15px] outline-none text-neutral-900"
               placeholder="Try 'Fusion SCM inventory setup'"
             />

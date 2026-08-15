@@ -181,7 +181,7 @@ export default function MessageThread({
             {uploading ? "..." : "📎"}
             <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={handleFileChange} className="hidden" disabled={uploading} />
           </label>
-          <input className="input" placeholder="Write a message..." value={body} onChange={(e) => setBody(e.target.value)} />
+          <input className="input" placeholder="Write a message..." maxLength={4000} value={body} onChange={(e) => setBody(e.target.value)} />
           <button type="submit" disabled={sending || uploading || (!body.trim() && !pendingAttachment)} className="btn-primary shrink-0">
             {sending ? "Sending..." : "Send"}
           </button>

@@ -54,6 +54,7 @@ export default async function BrowsePage({
         <input
           name="q"
           defaultValue={searchParams.q}
+          maxLength={200}
           className="flex-1 border-none px-3 py-2 text-sm outline-none"
           placeholder="What Oracle skill are you looking for?"
           aria-label="Search gigs"

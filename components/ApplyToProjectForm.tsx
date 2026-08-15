@@ -75,10 +75,12 @@ export default function ApplyToProjectForm({ projectId, myLedTeams }: { projectI
         value={coverLetter}
         onChange={(e) => setCoverLetter(e.target.value)}
         required
+        minLength={20}
+        maxLength={4000}
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <input type="number" min={1} className="input" placeholder={applyAs ? "Team price (£)" : "Your price (£)"} value={proposedPriceGbp} onChange={(e) => setProposedPriceGbp(e.target.value)} required />
-        <input type="number" min={1} className="input" placeholder="Timeline (weeks)" value={proposedWeeks} onChange={(e) => setProposedWeeks(e.target.value)} required />
+        <input type="number" min={1} max={1000000} step="0.01" inputMode="decimal" className="input" placeholder={applyAs ? "Team price (£)" : "Your price (£)"} value={proposedPriceGbp} onChange={(e) => setProposedPriceGbp(e.target.value)} required />
+        <input type="number" min={1} step={1} inputMode="numeric" className="input" placeholder="Timeline (weeks)" value={proposedWeeks} onChange={(e) => setProposedWeeks(e.target.value)} required />
       </div>
       <button type="submit" disabled={submitting} className="btn-primary self-start">
         {submitting ? "Submitting..." : "Submit proposal"}

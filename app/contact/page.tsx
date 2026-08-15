@@ -45,15 +45,15 @@ export default function ContactPage() {
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div>
             <label className="text-sm text-neutral-700 block mb-1">Name</label>
-            <input required className="input" value={name} onChange={(e) => setName(e.target.value)} />
+            <input required maxLength={200} className="input" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div>
             <label className="text-sm text-neutral-700 block mb-1">Email</label>
-            <input type="email" required className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input type="email" required maxLength={254} className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <div>
             <label className="text-sm text-neutral-700 block mb-1">Message</label>
-            <textarea required className="input min-h-[120px]" value={message} onChange={(e) => setMessage(e.target.value)} />
+            <textarea required minLength={1} maxLength={4000} className="input min-h-[120px]" value={message} onChange={(e) => setMessage(e.target.value)} />
           </div>
           <button type="submit" disabled={submitting} className="btn-primary self-start">
             {submitting ? "Sending..." : "Send message"}

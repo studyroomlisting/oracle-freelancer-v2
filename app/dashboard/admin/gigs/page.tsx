@@ -55,7 +55,7 @@ export default async function AdminManageGigsPage({ searchParams }: { searchPara
       </p>
 
       <form action="/dashboard/admin/gigs" className="flex mb-6 border border-neutral-900 rounded overflow-hidden max-w-sm">
-        <input name="q" defaultValue={searchParams.q} className="flex-1 border-none px-3 py-2 text-sm outline-none" placeholder="Search by title" />
+        <input name="q" defaultValue={searchParams.q} maxLength={200} className="flex-1 border-none px-3 py-2 text-sm outline-none" placeholder="Search by title" />
         <button type="submit" className="bg-neutral-900 text-white px-3.5" aria-label="Search">🔍</button>
       </form>
 

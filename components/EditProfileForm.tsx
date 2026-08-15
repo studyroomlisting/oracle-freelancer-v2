@@ -77,21 +77,21 @@ export default function EditProfileForm({
 
         <div>
           <label className="text-sm font-semibold text-neutral-800 block mb-1">Headline</label>
-          <input className="input" value={headline} onChange={(e) => setHeadline(e.target.value)} required />
+          <input className="input" value={headline} onChange={(e) => setHeadline(e.target.value)} required minLength={5} maxLength={120} />
         </div>
         <div>
           <label className="text-sm font-semibold text-neutral-800 block mb-1">Bio</label>
-          <textarea className="input min-h-[120px]" value={bio} onChange={(e) => setBio(e.target.value)} required />
+          <textarea className="input min-h-[120px]" value={bio} onChange={(e) => setBio(e.target.value)} required minLength={20} maxLength={2000} />
         </div>
         <CategoryMultiSelect categories={categories} value={oracleModules} onChange={setOracleModules} />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-neutral-600 block mb-1">Hourly rate (£)</label>
-            <input type="number" min={1} className="input" value={hourlyRateGbp} onChange={(e) => setHourlyRateGbp(e.target.value)} />
+            <input type="number" min={1} max={100000} step="0.01" inputMode="decimal" className="input" value={hourlyRateGbp} onChange={(e) => setHourlyRateGbp(e.target.value)} />
           </div>
           <div>
             <label className="text-xs text-neutral-600 block mb-1">Years of experience</label>
-            <input type="number" min={0} className="input" value={yearsExperience} onChange={(e) => setYearsExperience(e.target.value)} />
+            <input type="number" min={0} max={60} step={1} inputMode="numeric" className="input" value={yearsExperience} onChange={(e) => setYearsExperience(e.target.value)} />
           </div>
         </div>
 

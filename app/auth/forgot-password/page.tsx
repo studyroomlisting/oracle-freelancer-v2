@@ -34,7 +34,7 @@ export default function ForgotPasswordPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label className="text-sm text-neutral-700 block mb-1">Email</label>
-            <input type="email" required className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input type="email" required maxLength={254} className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <button type="submit" disabled={submitting} className="btn-primary">
             {submitting ? "Sending..." : "Send reset link"}

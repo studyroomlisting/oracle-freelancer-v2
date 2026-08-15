@@ -74,14 +74,14 @@ export default function PortfolioManager({ items }: { items: PortfolioItem[] }) 
       <form onSubmit={addItem} className="card p-4 flex flex-col gap-3">
         <p className="text-xs font-semibold text-neutral-700">Add a project</p>
         {error && <p className="text-xs text-red-600">{error}</p>}
-        <input className="input" placeholder="Project title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-        <textarea className="input min-h-[70px]" placeholder="What did you build or deliver?" value={description} onChange={(e) => setDescription(e.target.value)} required />
-        <input className="input" placeholder="Project link (optional)" value={projectUrl} onChange={(e) => setProjectUrl(e.target.value)} />
+        <input className="input" placeholder="Project title" minLength={2} maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} required />
+        <textarea className="input min-h-[70px]" placeholder="What did you build or deliver?" minLength={5} maxLength={2000} value={description} onChange={(e) => setDescription(e.target.value)} required />
+        <input type="url" className="input" placeholder="Project link (optional) — https://..." value={projectUrl} onChange={(e) => setProjectUrl(e.target.value)} />
         {/* FIXED (real gap found during review): portfolio only supported
             a static image — a video embed link (YouTube/Vimeo/Loom) is
             the pragmatic choice real freelance platforms make, rather
             than a full uploaded-video-file pipeline. */}
-        <input className="input" placeholder="Video link — YouTube, Vimeo, Loom (optional)" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} />
+        <input type="url" className="input" placeholder="Video link — YouTube, Vimeo, Loom (optional) — https://..." value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} />
         <ImageUpload endpoint="/api/uploads/portfolio" currentUrl={imageUrl} onUploaded={setImageUrl} label="Project image (optional)" />
         <button type="submit" disabled={submitting} className="btn-secondary self-start">
           {submitting ? "Adding..." : "Add project"}

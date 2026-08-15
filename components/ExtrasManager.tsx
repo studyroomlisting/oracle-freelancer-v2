@@ -73,11 +73,11 @@ export default function ExtrasManager({ gigId, items }: { gigId: string; items: 
       <form onSubmit={addExtra} className="card p-4 flex flex-col gap-3">
         <p className="text-xs font-semibold text-neutral-700">Add an extra</p>
         {error && <p className="text-xs text-red-600">{error}</p>}
-        <input className="input" placeholder="e.g. Extra revision, Source files, Faster delivery" value={title} onChange={(e) => setTitle(e.target.value)} required />
-        <textarea className="input min-h-[60px]" placeholder="What's included?" value={description} onChange={(e) => setDescription(e.target.value)} required />
+        <input className="input" placeholder="e.g. Extra revision, Source files, Faster delivery" minLength={3} maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} required />
+        <textarea className="input min-h-[60px]" placeholder="What's included?" minLength={3} maxLength={1000} value={description} onChange={(e) => setDescription(e.target.value)} required />
         <div className="grid grid-cols-2 gap-3">
-          <input type="number" min={1} step="0.01" className="input" placeholder="Price (£)" value={priceGbp} onChange={(e) => setPriceGbp(e.target.value)} required />
-          <input type="number" min={1} className="input" placeholder="Days faster (optional)" value={extraDeliveryDays} onChange={(e) => setExtraDeliveryDays(e.target.value)} />
+          <input type="number" min={1} max={100000} step="0.01" inputMode="decimal" className="input" placeholder="Price (£)" value={priceGbp} onChange={(e) => setPriceGbp(e.target.value)} required />
+          <input type="number" min={1} step={1} inputMode="numeric" className="input" placeholder="Days faster (optional)" value={extraDeliveryDays} onChange={(e) => setExtraDeliveryDays(e.target.value)} />
         </div>
         <button type="submit" disabled={submitting} className="btn-secondary self-start">
           {submitting ? "Adding..." : "Add extra"}

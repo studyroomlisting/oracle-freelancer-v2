@@ -84,31 +84,31 @@ export default function CreateTeamForm() {
 
       <div>
         <label className="text-sm font-semibold text-neutral-800 block mb-1">Team name</label>
-        <input className="input" placeholder="Oracle Finance Implementation Team" value={name} onChange={(e) => setName(e.target.value)} required />
+        <input className="input" placeholder="Oracle Finance Implementation Team" minLength={5} maxLength={200} value={name} onChange={(e) => setName(e.target.value)} required />
       </div>
 
       <div>
         <label className="text-sm font-semibold text-neutral-800 block mb-1">Description</label>
-        <textarea className="input min-h-[100px]" value={description} onChange={(e) => setDescription(e.target.value)} required />
+        <textarea className="input min-h-[100px]" minLength={30} maxLength={2000} value={description} onChange={(e) => setDescription(e.target.value)} required />
       </div>
 
       <div>
         <label className="text-sm font-semibold text-neutral-800 block mb-1">Your role as Team Leader</label>
-        <input className="input" value={leaderRoleLabel} onChange={(e) => setLeaderRoleLabel(e.target.value)} required />
+        <input className="input" minLength={2} maxLength={200} value={leaderRoleLabel} onChange={(e) => setLeaderRoleLabel(e.target.value)} required />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
           <label className="text-xs text-neutral-600 block mb-1">Team day rate (£)</label>
-          <input type="number" min={1} className="input" value={dailyRateGbp} onChange={(e) => setDailyRateGbp(e.target.value)} required />
+          <input type="number" min={1} max={100000} step="0.01" inputMode="decimal" className="input" value={dailyRateGbp} onChange={(e) => setDailyRateGbp(e.target.value)} required />
         </div>
         <div>
           <label className="text-xs text-neutral-600 block mb-1">Estimated weeks</label>
-          <input type="number" min={1} className="input" value={estimatedWeeks} onChange={(e) => setEstimatedWeeks(e.target.value)} required />
+          <input type="number" min={1} step={1} inputMode="numeric" className="input" value={estimatedWeeks} onChange={(e) => setEstimatedWeeks(e.target.value)} required />
         </div>
         <div>
           <label className="text-xs text-neutral-600 block mb-1">Available from</label>
-          <input type="date" className="input" value={availableFromDate} onChange={(e) => setAvailableFromDate(e.target.value)} required />
+          <input type="date" min={new Date().toISOString().slice(0, 10)} className="input" value={availableFromDate} onChange={(e) => setAvailableFromDate(e.target.value)} required />
         </div>
       </div>
 
@@ -130,12 +130,15 @@ export default function CreateTeamForm() {
               <input
                 className="input"
                 placeholder="freelancer-slug (e.g. grace-m)"
+                maxLength={200}
                 value={m.freelancerSlug}
                 onChange={(e) => updateMember(i, "freelancerSlug", e.target.value)}
               />
               <input
                 className="input"
                 placeholder="Role label (e.g. Finance Functional Consultant)"
+                minLength={2}
+                maxLength={200}
                 value={m.roleLabel}
                 onChange={(e) => updateMember(i, "roleLabel", e.target.value)}
               />

@@ -63,6 +63,12 @@ export default function CreateGigForm({ categories, initialGig }: { categories: 
   async function handleSubmit(e: React.FormEvent, saveAsDraft = false) {
     e.preventDefault();
     setError(null);
+    if (gigType === "WORKSHOP" && workshop.sessionStartAt && workshop.sessionEndAt) {
+      if (new Date(workshop.sessionEndAt).getTime() <= new Date(workshop.sessionStartAt).getTime()) {
+        setError("Workshop end time must be after the start time");
+        return;
+      }
+    }
     setSubmitting(true);
 
     const payload: any = { title, description, categoryId, gigType, tags: tags || undefined };
@@ -134,6 +140,8 @@ export default function CreateGigForm({ categories, initialGig }: { categories: 
         <input
           className="input"
           placeholder="I will configure Oracle Fusion SCM inventory..."
+          minLength={10}
+          maxLength={200}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
@@ -144,6 +152,8 @@ export default function CreateGigForm({ categories, initialGig }: { categories: 
         <label className="text-sm font-semibold text-neutral-800 block mb-1">Description</label>
         <textarea
           className="input min-h-[120px]"
+          minLength={30}
+          maxLength={4000}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           required
@@ -196,6 +206,9 @@ export default function CreateGigForm({ categories, initialGig }: { categories: 
               <input
                 type="number"
                 min={1}
+                max={168}
+                step={1}
+                inputMode="numeric"
                 className="input"
                 value={cancellationWindowHours}
                 onChange={(e) => setCancellationWindowHours(e.target.value)}
@@ -207,6 +220,8 @@ export default function CreateGigForm({ categories, initialGig }: { categories: 
                 type="number"
                 min={0}
                 max={100}
+                step={1}
+                inputMode="numeric"
                 className="input"
                 value={latePenaltyPercent}
                 onChange={(e) => setLatePenaltyPercent(e.target.value)}
@@ -245,6 +260,9 @@ export default function CreateGigForm({ categories, initialGig }: { categories: 
               <input
                 type="number"
                 min={1}
+                max={1000}
+                step={1}
+                inputMode="numeric"
                 className="input"
                 value={workshop.maxSeats}
                 onChange={(e) => setWorkshop((w) => ({ ...w, maxSeats: e.target.value }))}
@@ -256,6 +274,9 @@ export default function CreateGigForm({ categories, initialGig }: { categories: 
               <input
                 type="number"
                 min={1}
+                max={1000000}
+                step="0.01"
+                inputMode="decimal"
                 className="input"
                 value={workshop.priceGbp}
                 onChange={(e) => setWorkshop((w) => ({ ...w, priceGbp: e.target.value }))}
@@ -274,6 +295,8 @@ export default function CreateGigForm({ categories, initialGig }: { categories: 
                 <input
                   className="input"
                   placeholder="Package title"
+                  minLength={2}
+                  maxLength={200}
                   value={p.title}
                   onChange={(e) => updatePackage(i, "title", e.target.value)}
                   required
@@ -281,6 +304,9 @@ export default function CreateGigForm({ categories, initialGig }: { categories: 
                 <input
                   type="number"
                   min={1}
+                  max={1000000}
+                  step="0.01"
+                  inputMode="decimal"
                   className="input"
                   placeholder="Price (£)"
                   value={p.priceGbp}
@@ -290,6 +316,8 @@ export default function CreateGigForm({ categories, initialGig }: { categories: 
                 <input
                   type="number"
                   min={1}
+                  step={1}
+                  inputMode="numeric"
                   className="input"
                   placeholder="Delivery days"
                   value={p.deliveryDays}
@@ -299,6 +327,8 @@ export default function CreateGigForm({ categories, initialGig }: { categories: 
                 <input
                   type="number"
                   min={0}
+                  step={1}
+                  inputMode="numeric"
                   className="input"
                   placeholder="Revisions"
                   value={p.revisions}
@@ -310,6 +340,7 @@ export default function CreateGigForm({ categories, initialGig }: { categories: 
                     type="number"
                     min={15}
                     step={15}
+                    inputMode="numeric"
                     className="input"
                     placeholder="Session length (minutes)"
                     value={p.sessionDurationMinutes}
@@ -321,6 +352,8 @@ export default function CreateGigForm({ categories, initialGig }: { categories: 
               <textarea
                 className="input"
                 placeholder="What's included at this tier?"
+                minLength={5}
+                maxLength={2000}
                 value={p.description}
                 onChange={(e) => updatePackage(i, "description", e.target.value)}
                 required
@@ -332,7 +365,7 @@ export default function CreateGigForm({ categories, initialGig }: { categories: 
 
       <div>
         <label className="text-sm font-semibold text-neutral-800 block mb-1">Tags (comma-separated, optional)</label>
-        <input className="input" placeholder="fusion, migration, go-live" value={tags} onChange={(e) => setTags(e.target.value)} />
+        <input className="input" placeholder="fusion, migration, go-live" maxLength={300} value={tags} onChange={(e) => setTags(e.target.value)} />
       </div>
 
       <div className="flex gap-3">

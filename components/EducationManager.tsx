@@ -72,12 +72,12 @@ export default function EducationManager({ entries }: { entries: EducationEntry[
       <form onSubmit={addEntry} className="card p-4 flex flex-col gap-3">
         <p className="text-xs font-semibold text-neutral-700">Add education</p>
         {error && <p className="text-xs text-red-600">{error}</p>}
-        <input className="input" placeholder="Institution" value={institution} onChange={(e) => setInstitution(e.target.value)} required />
+        <input className="input" placeholder="Institution" minLength={2} maxLength={200} value={institution} onChange={(e) => setInstitution(e.target.value)} required />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input className="input" placeholder="Degree" value={degree} onChange={(e) => setDegree(e.target.value)} required />
-          <input className="input" placeholder="Field of study (optional)" value={fieldOfStudy} onChange={(e) => setFieldOfStudy(e.target.value)} />
+          <input className="input" placeholder="Degree" minLength={2} maxLength={200} value={degree} onChange={(e) => setDegree(e.target.value)} required />
+          <input className="input" placeholder="Field of study (optional)" maxLength={200} value={fieldOfStudy} onChange={(e) => setFieldOfStudy(e.target.value)} />
         </div>
-        <input type="number" min={1950} max={2100} className="input" placeholder="Graduation year (optional)" value={graduationYear} onChange={(e) => setGraduationYear(e.target.value)} />
+        <input type="number" min={1950} max={2100} step={1} inputMode="numeric" className="input" placeholder="Graduation year (optional)" value={graduationYear} onChange={(e) => setGraduationYear(e.target.value)} />
         <button type="submit" disabled={submitting} className="btn-secondary self-start">
           {submitting ? "Adding..." : "Add education"}
         </button>

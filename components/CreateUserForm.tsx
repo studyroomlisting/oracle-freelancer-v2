@@ -48,8 +48,8 @@ export default function CreateUserForm() {
     <form onSubmit={handleSubmit} className="card p-4 mb-6 flex flex-col gap-3 max-w-md">
       <p className="text-sm font-semibold text-neutral-900">Create a new user</p>
       {error && <p className="text-xs text-red-600">{error}</p>}
-      <input className="input" placeholder="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-      <input type="email" className="input" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+      <input className="input" placeholder="Full name" minLength={2} maxLength={200} value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+      <input type="email" className="input" placeholder="Email" maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} required />
       <select className="input" value={role} onChange={(e) => setRole(e.target.value as "CLIENT" | "FREELANCER")}>
         <option value="CLIENT">Client</option>
         <option value="FREELANCER">Freelancer</option>

@@ -25,6 +25,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: { p
         <input
           name="q"
           defaultValue={searchParams.q}
+          maxLength={200}
           className="flex-1 border-none px-3 py-2 text-sm outline-none"
           placeholder="Search project titles and briefs"
           aria-label="Search projects"

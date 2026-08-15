@@ -48,6 +48,7 @@ export default async function AdminManageProjectsPage({
         <input
           name="q"
           defaultValue={searchParams.q}
+          maxLength={200}
           className="input flex-1 min-w-[180px]"
           placeholder="Search by title"
         />

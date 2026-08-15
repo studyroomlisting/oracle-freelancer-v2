@@ -20,8 +20,12 @@ export default function WorkExperienceManager({ entries }: { entries: WorkExperi
 
   async function addEntry(e: React.FormEvent) {
     e.preventDefault();
-    setSubmitting(true);
     setError(null);
+    if (endYear && Number(endYear) < Number(startYear)) {
+      setError("End year can't be before the start year");
+      return;
+    }
+    setSubmitting(true);
     try {
       const res = await fetch("/api/freelancer/work-experience", {
         method: "POST",
@@ -78,12 +82,12 @@ export default function WorkExperienceManager({ entries }: { entries: WorkExperi
         <p className="text-xs font-semibold text-neutral-700">Add work experience</p>
         {error && <p className="text-xs text-red-600">{error}</p>}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input className="input" placeholder="Company" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required />
-          <input className="input" placeholder="Role / title" value={role} onChange={(e) => setRole(e.target.value)} required />
+          <input className="input" placeholder="Company" minLength={2} maxLength={200} value={companyName} onChange={(e) => setCompanyName(e.target.value)} required />
+          <input className="input" placeholder="Role / title" minLength={2} maxLength={200} value={role} onChange={(e) => setRole(e.target.value)} required />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <input type="number" min={1950} max={2100} className="input" placeholder="Start year" value={startYear} onChange={(e) => setStartYear(e.target.value)} required />
-          <input type="number" min={1950} max={2100} className="input" placeholder="End year (blank = present)" value={endYear} onChange={(e) => setEndYear(e.target.value)} />
+          <input type="number" min={1950} max={2100} step={1} inputMode="numeric" className="input" placeholder="Start year" value={startYear} onChange={(e) => setStartYear(e.target.value)} required />
+          <input type="number" min={1950} max={2100} step={1} inputMode="numeric" className="input" placeholder="End year (blank = present)" value={endYear} onChange={(e) => setEndYear(e.target.value)} />
         </div>
         <textarea className="input min-h-[60px]" placeholder="What did you work on? (optional)" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
         <button type="submit" disabled={submitting} className="btn-secondary self-start">

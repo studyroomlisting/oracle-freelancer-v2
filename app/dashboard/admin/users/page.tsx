@@ -54,7 +54,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: {
       <CreateUserForm />
 
       <form action="/dashboard/admin/users" className="flex mb-6 border border-neutral-900 rounded overflow-hidden max-w-sm">
-        <input name="q" defaultValue={searchParams.q} className="flex-1 border-none px-3 py-2 text-sm outline-none" placeholder="Search name or email" />
+        <input name="q" defaultValue={searchParams.q} maxLength={200} className="flex-1 border-none px-3 py-2 text-sm outline-none" placeholder="Search name or email" />
         <button type="submit" className="bg-neutral-900 text-white px-3.5" aria-label="Search">🔍</button>
       </form>
 

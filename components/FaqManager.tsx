@@ -70,8 +70,8 @@ export default function FaqManager({ gigId, items }: { gigId: string; items: Faq
       <form onSubmit={addItem} className="card p-4 flex flex-col gap-3">
         <p className="text-xs font-semibold text-neutral-700">Add a question</p>
         {error && <p className="text-xs text-red-600">{error}</p>}
-        <input className="input" placeholder="Question" value={question} onChange={(e) => setQuestion(e.target.value)} required />
-        <textarea className="input min-h-[70px]" placeholder="Answer" value={answer} onChange={(e) => setAnswer(e.target.value)} required />
+        <input className="input" placeholder="Question" minLength={5} maxLength={300} value={question} onChange={(e) => setQuestion(e.target.value)} required />
+        <textarea className="input min-h-[70px]" placeholder="Answer" minLength={5} maxLength={2000} value={answer} onChange={(e) => setAnswer(e.target.value)} required />
         <button type="submit" disabled={submitting} className="btn-secondary self-start">
           {submitting ? "Adding..." : "Add FAQ"}
         </button>

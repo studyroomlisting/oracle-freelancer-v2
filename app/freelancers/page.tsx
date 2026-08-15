@@ -35,6 +35,7 @@ export default async function FreelancersDirectoryPage({
             <input
               name="q"
               defaultValue={searchParams.q}
+              maxLength={200}
               className="flex-1 border-none px-3 py-2 text-sm outline-none"
               placeholder="Search by name or skill"
               aria-label="Search freelancers"

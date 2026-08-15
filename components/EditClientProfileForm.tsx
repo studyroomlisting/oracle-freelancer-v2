@@ -50,12 +50,12 @@ export default function EditClientProfileForm({
 
         <div>
           <label className="text-sm font-semibold text-neutral-800 block mb-1">Company name</label>
-          <input className="input" value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
+          <input className="input" maxLength={200} value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-neutral-600 block mb-1">Industry</label>
-            <input className="input" value={companyIndustry} onChange={(e) => setCompanyIndustry(e.target.value)} />
+            <input className="input" maxLength={100} value={companyIndustry} onChange={(e) => setCompanyIndustry(e.target.value)} />
           </div>
           <div>
             <label className="text-xs text-neutral-600 block mb-1">Company size</label>
