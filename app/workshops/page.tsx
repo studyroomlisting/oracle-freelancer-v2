@@ -52,8 +52,12 @@ export default async function WorkshopsPage({
                   href={`/gigs/${g.slug}`}
                   className="card flex flex-col sm:flex-row gap-4 p-5 hover:shadow-md transition-shadow"
                 >
-                  <div className="w-full sm:w-40 aspect-video sm:aspect-square bg-neutral-100 rounded flex items-center justify-center text-neutral-400 text-xs shrink-0">
-                    {g.categoryName}
+                  <div className="w-full sm:w-40 aspect-video sm:aspect-square bg-neutral-100 rounded flex items-center justify-center text-neutral-400 text-xs shrink-0 overflow-hidden">
+                    {g.coverImageUrl ? (
+                      <img src={g.coverImageUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      g.categoryName
+                    )}
                   </div>
                   <div className="flex-1">
                     <p className="text-xs font-bold text-brand-700 mb-1">{formatSession(g.sessionStartAt)}</p>
