@@ -303,7 +303,12 @@ export async function getAllProjectPostingsForAdmin(page: number = 1, query?: st
   const safePage = Math.max(1, page);
   try {
     const where = {
-      ...(query ? { title: { contains: query } } : {}),
+      // FIXED: Prisma's `contains` on Postgres is case-sensitive by
+      // default — "wordpress developer" wouldn't match a title saved as
+      // "WordPress Developer" unless `mode: "insensitive"` is set
+      // explicitly. Admins searching by title expect it to just work
+      // regardless of casing.
+      ...(query ? { title: { contains: query, mode: "insensitive" as const } } : {}),
       ...(status ? { status: status as any } : {}),
     };
     const [postings, totalCount] = await Promise.all([
