@@ -21,7 +21,12 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: {
 
   const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   const where = searchParams.q
-    ? { OR: [{ fullName: { contains: searchParams.q } }, { email: { contains: searchParams.q } }] }
+    ? {
+        OR: [
+          { fullName: { contains: searchParams.q, mode: "insensitive" as const } },
+          { email: { contains: searchParams.q, mode: "insensitive" as const } },
+        ],
+      }
     : {};
 
   const [users, totalCount] = await Promise.all([

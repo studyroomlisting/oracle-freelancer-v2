@@ -194,7 +194,11 @@ export async function searchGigs(
       ...(certifiedOnly ? { freelancerProfile: { isCertified: true } } : {}),
       ...(query
         ? {
-            OR: [{ title: { contains: query } }, { description: { contains: query } }, { tags: { contains: query } }],
+            OR: [
+              { title: { contains: query, mode: "insensitive" as const } },
+              { description: { contains: query, mode: "insensitive" as const } },
+              { tags: { contains: query, mode: "insensitive" as const } },
+            ],
           }
         : {}),
       ...((budgetMin != null || budgetMax != null)
@@ -629,7 +633,13 @@ export async function searchFreelancers(
     const where = {
       isApprovedToSell: true,
       ...(query
-        ? { OR: [{ user: { fullName: { contains: query } } }, { headline: { contains: query } }, { bio: { contains: query } }] }
+        ? {
+            OR: [
+              { user: { fullName: { contains: query, mode: "insensitive" as const } } },
+              { headline: { contains: query, mode: "insensitive" as const } },
+              { bio: { contains: query, mode: "insensitive" as const } },
+            ],
+          }
         : {}),
       ...(categorySlug ? { gigs: { some: { status: "ACTIVE" as const, category: { slug: categorySlug } } } } : {}),
     };
@@ -748,7 +758,14 @@ export async function getOpenProjects(page: number = 1, query?: string) {
     // Oracle-acronym searches this platform depends on.
     const where = {
       status: "OPEN" as const,
-      ...(query ? { OR: [{ title: { contains: query } }, { description: { contains: query } }] } : {}),
+      ...(query
+        ? {
+            OR: [
+              { title: { contains: query, mode: "insensitive" as const } },
+              { description: { contains: query, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
     };
     const [postings, totalCount] = await Promise.all([
       prisma.projectPosting.findMany({

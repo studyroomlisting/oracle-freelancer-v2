@@ -22,7 +22,7 @@ export default async function AdminManageGigsPage({ searchParams }: { searchPara
   const where = {
     status: "ACTIVE" as const,
     isProjectEngagement: false,
-    ...(searchParams.q ? { title: { contains: searchParams.q } } : {}),
+    ...(searchParams.q ? { title: { contains: searchParams.q, mode: "insensitive" as const } } : {}),
   };
 
   const [gigs, totalCount] = await Promise.all([
