@@ -29,6 +29,14 @@ const gigTypeLabels: Record<string, string> = {
   WORKSHOP: "Workshop",
 };
 
+const teamOrderStatusLabels: Record<string, string> = {
+  REQUESTED: "Awaiting deposit",
+  DEPOSIT_PAID: "Deposit paid — scoping call next",
+  IN_PROGRESS: "In progress",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+};
+
 export default async function FreelancerDashboard({
   searchParams,
 }: {
@@ -42,6 +50,7 @@ export default async function FreelancerDashboard({
   let teamsLed: any[] = [];
   let teamMemberships: any[] = [];
   let projectApplications: any[] = [];
+  let teamOrders: any[] = [];
 
   if (process.env.DATABASE_URL) {
     const profile = await prisma.freelancerProfile.findUnique({
@@ -61,6 +70,19 @@ export default async function FreelancerDashboard({
         orderBy: { createdAt: "desc" },
         take: 10,
         include: { gig: true, gigPackage: true },
+      });
+      // ADDED (real gap found during review): a client requesting a team
+      // (prebuilt or custom) sends the team leader an email + in-app
+      // notification, but there was no persistent place on the dashboard
+      // to find that request again afterward — the notification/email
+      // link was the ONLY path in, and once dismissed or missed, the
+      // leader had no way back to /team-orders/[id] or its workspace.
+      // Mirrors the existing "Recent orders" pattern for individual gigs.
+      teamOrders = await prisma.teamOrder.findMany({
+        where: { teamId: { in: teamsLed.map((t: any) => t.id) } },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: { team: true, client: true },
       });
       projectApplications = await prisma.projectApplication.findMany({
         where: {
@@ -222,6 +244,34 @@ export default async function FreelancerDashboard({
                   Manage roster
                 </Link>
                 <span className="badge">{gigStatusLabels[t.status] ?? t.status}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between mt-10 mb-4">
+        <h2 className="text-lg font-semibold text-neutral-900">Team engagement requests</h2>
+      </div>
+      {teamOrders.length === 0 ? (
+        <div className="card p-6 text-sm text-neutral-500 text-center">
+          No client requests yet — when a client requests one of your teams, it'll show up here.
+        </div>
+      ) : (
+        <div className="card divide-y divide-neutral-200">
+          {teamOrders.map((o: any) => (
+            <div key={o.id} className="p-4 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-neutral-900">{o.team?.name ?? "Custom team request"}</p>
+                <p className="text-xs text-neutral-500">
+                  {o.client.fullName} · £{Number(o.totalEstimateGbp).toLocaleString()} estimate
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="badge">{teamOrderStatusLabels[o.status] ?? o.status}</span>
+                <Link href={`/team-orders/${o.id}`} className="text-xs font-bold text-white bg-brand-500 hover:bg-brand-600 rounded px-3 py-1.5">
+                  View
+                </Link>
               </div>
             </div>
           ))}
