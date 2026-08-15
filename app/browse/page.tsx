@@ -17,7 +17,13 @@ export default async function BrowsePage({
 }: {
   searchParams: { q?: string; category?: string; sort?: string; type?: string; page?: string; budgetMin?: string; budgetMax?: string; certified?: string };
 }) {
-  const gigType = (searchParams.type as GigTypeFilter | undefined) ?? "CONSULTING";
+  // "ALL" (used by the homepage's top search box) means search every gig
+  // type at once — Consulting, Training, and Workshop together. No `type`
+  // param at all (e.g. someone clicking the "Consultants" nav link, or
+  // visiting /browse directly) still defaults to CONSULTING-only, exactly
+  // as before — this only adds a new explicit "ALL" option, it doesn't
+  // change what an absent param means.
+  const gigType = searchParams.type === "ALL" ? undefined : (searchParams.type as GigTypeFilter | undefined) ?? "CONSULTING";
   const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   const budgetMin = searchParams.budgetMin ? Number(searchParams.budgetMin) : undefined;
   const budgetMax = searchParams.budgetMax ? Number(searchParams.budgetMax) : undefined;

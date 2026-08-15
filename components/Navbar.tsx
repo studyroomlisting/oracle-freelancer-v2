@@ -34,6 +34,9 @@ export default async function Navbar() {
           </Link>
 
           <form action="/browse" className="hidden md:flex flex-1 max-w-md border border-neutral-900 rounded overflow-hidden">
+            {/* Search every gig type at once (Consulting, Training, Workshop) —
+                see app/browse/page.tsx for what "ALL" means there. */}
+            <input type="hidden" name="type" value="ALL" />
             <input
               name="q"
               className="flex-1 border-none px-3.5 py-2.5 text-sm outline-none"

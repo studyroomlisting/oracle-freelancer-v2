@@ -32,6 +32,9 @@ export default async function HomePage() {
             Find your perfect Oracle <span className="text-brand-500">freelancer</span>, quick and easy
           </h1>
           <form action="/browse" className="flex max-w-xl bg-white rounded-lg overflow-hidden shadow-xl">
+            {/* Search every gig type at once (Consulting, Training, Workshop) —
+                see app/browse/page.tsx for what "ALL" means there. */}
+            <input type="hidden" name="type" value="ALL" />
             <input
               name="q"
               maxLength={200}
