@@ -291,6 +291,37 @@ export async function getPendingProjectPostings() {
   }
 }
 
+// ADDED (admin gap): the admin dashboard previously only ever surfaced
+// PENDING_REVIEW postings (via getPendingProjectPostings above) — the
+// moment a posting was approved/rejected/awarded it vanished from admin's
+// view entirely, with no page to browse it again, unlike gigs which have
+// a dedicated "Manage active gigs" page. This mirrors that same pattern
+// for projects: every status, searchable, paginated. Read-only query —
+// doesn't touch getPendingProjectPostings or anything that depends on it.
+export async function getAllProjectPostingsForAdmin(page: number = 1, query?: string, status?: string) {
+  if (!process.env.DATABASE_URL) return { postings: [], totalCount: 0, totalPages: 1, page: 1 };
+  const safePage = Math.max(1, page);
+  try {
+    const where = {
+      ...(query ? { title: { contains: query } } : {}),
+      ...(status ? { status: status as any } : {}),
+    };
+    const [postings, totalCount] = await Promise.all([
+      prisma.projectPosting.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (safePage - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
+        include: { category: true, client: true, _count: { select: { applications: true } } },
+      }),
+      prisma.projectPosting.count({ where }),
+    ]);
+    return { postings, totalCount, totalPages: Math.max(1, Math.ceil(totalCount / PAGE_SIZE)), page: safePage };
+  } catch {
+    return { postings: [], totalCount: 0, totalPages: 1, page: 1 };
+  }
+}
+
 // Oracle Project Teams
 
 export type NormalizedTeamMember = {
