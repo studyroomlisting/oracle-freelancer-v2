@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { randomUUID } from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -23,12 +23,15 @@ async function main() {
   const financials = await prisma.category.findUniqueOrThrow({ where: { slug: "oracle-fusion-financials" } });
   const epm = await prisma.category.findUniqueOrThrow({ where: { slug: "oracle-epm" } });
 
-  const passwordHash = await bcrypt.hash("Password123!", 10);
-
+  // NOTE: User.id is no longer auto-generated (Supabase Auth assigns the real
+  // UUID at signup) and User no longer stores a password — Supabase Auth owns
+  // both. These seed rows are demo PROFILE data only; they won't be able to
+  // log in as-is unless matching accounts are also created in Supabase Auth
+  // (e.g. via the Admin API) using the same id/email.
   const priyaUser = await prisma.user.upsert({
     where: { email: "priya@example.com" },
     update: {},
-    create: { email: "priya@example.com", passwordHash, fullName: "Priya R.", role: "FREELANCER", isVerifiedEmail: true },
+    create: { id: randomUUID(), email: "priya@example.com", fullName: "Priya R.", role: "FREELANCER" },
   });
 
   const priyaProfile = await prisma.freelancerProfile.upsert({
@@ -74,7 +77,7 @@ async function main() {
   const danielUser = await prisma.user.upsert({
     where: { email: "daniel@example.com" },
     update: {},
-    create: { email: "daniel@example.com", passwordHash, fullName: "Daniel O.", role: "FREELANCER", isVerifiedEmail: true },
+    create: { id: randomUUID(), email: "daniel@example.com", fullName: "Daniel O.", role: "FREELANCER" },
   });
 
   const danielProfile = await prisma.freelancerProfile.upsert({
@@ -121,7 +124,7 @@ async function main() {
   const sophieUser = await prisma.user.upsert({
     where: { email: "sophie@example.com" },
     update: {},
-    create: { email: "sophie@example.com", passwordHash, fullName: "Sophie L.", role: "FREELANCER", isVerifiedEmail: true },
+    create: { id: randomUUID(), email: "sophie@example.com", fullName: "Sophie L.", role: "FREELANCER" },
   });
   const sophieProfile = await prisma.freelancerProfile.upsert({
     where: { userId: sophieUser.id },
@@ -194,7 +197,7 @@ async function main() {
   const financialsClient = await prisma.user.upsert({
     where: { email: "client-manufacturing@example.com" },
     update: {},
-    create: { email: "client-manufacturing@example.com", passwordHash, fullName: "Northgate Manufacturing Ltd", role: "CLIENT", isVerifiedEmail: true },
+    create: { id: randomUUID(), email: "client-manufacturing@example.com", fullName: "Northgate Manufacturing Ltd", role: "CLIENT" },
   });
 
   const postingA = await prisma.projectPosting.upsert({
@@ -277,7 +280,7 @@ async function main() {
   const graceUser = await prisma.user.upsert({
     where: { email: "grace@example.com" },
     update: {},
-    create: { email: "grace@example.com", passwordHash, fullName: "Grace M.", role: "FREELANCER", isVerifiedEmail: true },
+    create: { id: randomUUID(), email: "grace@example.com", fullName: "Grace M.", role: "FREELANCER" },
   });
   const graceProfile = await prisma.freelancerProfile.upsert({
     where: { userId: graceUser.id },
@@ -303,7 +306,7 @@ async function main() {
   const ahmedUser = await prisma.user.upsert({
     where: { email: "ahmed@example.com" },
     update: {},
-    create: { email: "ahmed@example.com", passwordHash, fullName: "Ahmed K.", role: "FREELANCER", isVerifiedEmail: true },
+    create: { id: randomUUID(), email: "ahmed@example.com", fullName: "Ahmed K.", role: "FREELANCER" },
   });
   const ahmedProfile = await prisma.freelancerProfile.upsert({
     where: { userId: ahmedUser.id },
@@ -332,7 +335,7 @@ async function main() {
   const nadiaUser = await prisma.user.upsert({
     where: { email: "nadia@example.com" },
     update: {},
-    create: { email: "nadia@example.com", passwordHash, fullName: "Nadia S.", role: "FREELANCER", isVerifiedEmail: true },
+    create: { id: randomUUID(), email: "nadia@example.com", fullName: "Nadia S.", role: "FREELANCER" },
   });
   const nadiaProfile = await prisma.freelancerProfile.upsert({
     where: { userId: nadiaUser.id },
