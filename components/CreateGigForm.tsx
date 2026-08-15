@@ -133,7 +133,7 @@ export default function CreateGigForm({ categories, initialGig }: { categories: 
         )}
       </div>
 
-      <ImageUpload endpoint="/api/uploads/gig-cover" onUploaded={setCoverImageUrl} label="Cover image (optional)" />
+      <ImageUpload endpoint="/api/uploads/gig-cover" currentUrl={coverImageUrl} onUploaded={setCoverImageUrl} label="Cover image (optional)" />
 
       <div>
         <label className="text-sm font-semibold text-neutral-800 block mb-1">Title</label>
