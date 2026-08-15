@@ -331,6 +331,35 @@ export async function getAllProjectPostingsForAdmin(page: number = 1, query?: st
   }
 }
 
+// ADDED (admin gap): a client requesting a team (prebuilt or custom) was
+// completely invisible to admin — no list existed anywhere, unlike every
+// other order-like model on this platform (gig Orders show under disputed
+// orders at minimum; ProjectPostings have their own admin page). A
+// £72,000 engagement having zero admin oversight is a real gap, not a
+// stylistic one. Read-only by design: TeamOrders don't go through an
+// approval step (nothing here needs approve/reject), and there's no
+// dispute field on this model to action — admin just needs visibility.
+export async function getAllTeamOrdersForAdmin(page: number = 1, status?: string) {
+  if (!process.env.DATABASE_URL) return { teamOrders: [], totalCount: 0, totalPages: 1, page: 1 };
+  const safePage = Math.max(1, page);
+  try {
+    const where = { ...(status ? { status: status as any } : {}) };
+    const [teamOrders, totalCount] = await Promise.all([
+      prisma.teamOrder.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (safePage - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
+        include: { team: { include: { teamLeader: { include: { user: true } } } }, client: true },
+      }),
+      prisma.teamOrder.count({ where }),
+    ]);
+    return { teamOrders, totalCount, totalPages: Math.max(1, Math.ceil(totalCount / PAGE_SIZE)), page: safePage };
+  } catch {
+    return { teamOrders: [], totalCount: 0, totalPages: 1, page: 1 };
+  }
+}
+
 // Oracle Project Teams
 
 export type NormalizedTeamMember = {

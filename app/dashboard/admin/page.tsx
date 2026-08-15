@@ -96,6 +96,9 @@ export default async function AdminDashboard() {
           <Link href="/dashboard/admin/projects" className="btn-secondary">
             Manage projects
           </Link>
+          <Link href="/dashboard/admin/team-orders" className="btn-secondary">
+            Team requests
+          </Link>
           <Link href="/dashboard/admin/users" className="btn-secondary">
             Manage users
           </Link>
