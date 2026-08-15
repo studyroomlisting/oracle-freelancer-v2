@@ -1,0 +1,1057 @@
+// Oracle Freelancers Marketplace — PostgreSQL schema (Supabase)
+// FIXED (Supabase migration, dedicated pass): converted from MySQL.
+// Run: npx prisma migrate dev --name init
+// DATABASE_URL should be your Supabase project's connection string —
+// found in Project Settings → Database → Connection string (use the
+// "Transaction" pooler string for serverless/edge deploys, or the direct
+// connection string for a traditional long-running server).
+
+generator client {
+  provider = "prisma-client-js"
+  // previewFeatures = ["fullTextIndex"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // FIXED (Supabase migration): Supabase's connection pooler (PgBouncer,
+  // the URL you get by default) doesn't support the prepared statements
+  // Prisma's migration engine needs — `prisma migrate` and `prisma db
+  // push` require the direct (non-pooled) connection string instead. The
+  // app's normal runtime queries use DATABASE_URL (pooled, better suited
+  // to serverless/many-short-lived-connections); migrations use
+  // DIRECT_URL. Both are in .env.example.
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  CLIENT
+  FREELANCER
+  ADMIN
+}
+
+enum GigStatus {
+  DRAFT
+  PENDING_REVIEW
+  ACTIVE
+  PAUSED
+  REJECTED
+  // FIXED (Milestone 4 gap): no archive concept existed at all. Reachable
+  // from DRAFT, PAUSED, or REJECTED — not directly from ACTIVE, to avoid
+  // accidentally archiving something currently live (must be paused first).
+  ARCHIVED
+}
+
+enum GigType {
+  CONSULTING
+  TRAINING
+  WORKSHOP
+}
+
+enum TeachingMode {
+  ONLINE
+  OFFLINE
+  HYBRID
+}
+
+enum PackageTier {
+  BASIC
+  STANDARD
+  PREMIUM
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  // FIXED (gap review): booking used to jump straight from payment to
+  // IN_PROGRESS with no freelancer acceptance step — a freelancer could be
+  // committed to work they never agreed to take on. Payment now lands here
+  // instead; the freelancer must explicitly accept or decline.
+  PENDING_ACCEPTANCE
+  IN_PROGRESS
+  DELIVERED
+  IN_REVISION
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  PAID
+}
+
+enum TeamOrderStatus {
+  REQUESTED
+  DEPOSIT_PAID
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+}
+
+enum WorkspaceTaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum TeamMemberStatus {
+  ACTIVE
+  REPLACED
+}
+
+// FIXED (Post Requirement expansion): these support the new Oracle-
+// support-ticket-style fields added to ProjectPosting — Environment,
+// Priority, Severity, and a Fixed/Hourly pricing type. All new, all
+// optional (nullable), so nothing about an existing posting is disturbed.
+enum RequirementEnvironment {
+  DEV
+  TEST
+  UAT
+  PROD
+}
+
+enum RequirementPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum RequirementSeverity {
+  MINOR
+  MAJOR
+  CRITICAL
+  BLOCKER
+}
+
+enum RequirementPricingType {
+  FIXED
+  HOURLY
+}
+
+enum ProjectPostingStatus {
+  // FIXED (Milestone 6 gap): a posting previously went straight to OPEN
+  // (publicly visible) the instant a client created it — zero admin
+  // moderation, completely unlike gigs and teams, which both require
+  // approval before going live. That inconsistency is closed here.
+  DRAFT
+  PENDING_REVIEW
+  OPEN
+  REJECTED
+  AWARDED
+  CLOSED
+}
+
+enum ProjectApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+model User {
+  // FIXED (Supabase Auth migration): this used to be Prisma's own
+  // @default(cuid()) — now it's set explicitly at profile-creation time
+  // to match the id Supabase Auth already assigned that person in its own
+  // auth.users table (a UUID). This table is now a linked PROFILE, not
+  // the identity system itself — Supabase owns the identity.
+  id                String            @id
+  email             String            @unique
+  fullName          String
+  role              UserRole          @default(CLIENT)
+  avatarUrl         String?
+  country           String?
+  // FIXED (Supabase Auth migration): passwordHash, email-verification
+  // tokens, password-reset tokens, and magic-link tokens all used to live
+  // here and were managed by hand (bcrypt, custom expiring tokens).
+  // Supabase Auth now owns all of that internally — none of it is
+  // reproduced in this schema anymore. Email-verification status itself
+  // is read from Supabase's session (email_confirmed_at), not stored here.
+  //
+  // Account lockout is genuinely app-specific logic Supabase doesn't
+  // provide out of the box — kept, and still enforced before ever calling
+  // Supabase's own sign-in, same protection as before.
+  failedLoginAttempts Int             @default(0)
+  lockedUntil       DateTime?
+  isSuspended       Boolean           @default(false)
+  // Powers the "online now" / "last seen" indicator — updated on login and
+  // on each chat poll (see app/api/messages/thread/[userId]/route.ts).
+  // Deliberately not true presence (no heartbeat/websocket) — an honest
+  // "recently active" signal, same framing as the polling-based chat.
+  lastActiveAt      DateTime?
+  // Client company info — collected during onboarding (Milestone 2).
+  // Freelancers don't use these fields; kept on User rather than a
+  // separate ClientProfile model since clients need only these few extra
+  // fields, not a whole profile subsystem like freelancers have.
+  companyName       String?
+  companyIndustry   String?
+  companySize       String?
+  // Null until the user finishes (or explicitly skips) the post-registration
+  // onboarding flow — see app/onboarding/page.tsx. Distinct from
+  // isVerifiedEmail: a user can verify their email without ever completing
+  // onboarding, and vice versa via "Skip for now."
+  onboardingCompletedAt DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  freelancerProfile FreelancerProfile?
+  ordersAsClient    Order[]           @relation("ClientOrders")
+  teamOrdersAsClient TeamOrder[]      @relation("ClientTeamOrders")
+  messagesSent      Message[]         @relation("MessagesSent")
+  messagesReceived  Message[]         @relation("MessagesReceived")
+  reviewsWritten    Review[]          @relation("ReviewsWritten")
+  workspaceTasksCreated WorkspaceTask[] @relation("WorkspaceTasksCreated")
+  workspaceTasksAssigned WorkspaceTask[] @relation("WorkspaceTasksAssigned")
+  workspaceNotesAuthored WorkspaceNote[] @relation("WorkspaceNotesAuthored")
+  projectPostings   ProjectPosting[]  @relation("ClientProjectPostings")
+  transactions      Transaction[]
+  notifications     Notification[]
+  auditLogsCreated  AuditLog[]
+
+  @@index([role])
+  @@index([email])
+  // @@index([emailVerificationToken])
+  // @@index([passwordResetToken])
+  // @@index([magicLinkToken])
+}
+
+model FreelancerProfile {
+  id                String        @id @default(cuid())
+  userId            String        @unique
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slug              String        @unique
+  // FIXED (Milestone 3 gap): no public/private visibility concept existed
+  // anywhere — a freelancer's profile was always publicly viewable with no
+  // way to opt out. Defaults to public (existing behavior unchanged for
+  // everyone who doesn't touch this setting).
+  isProfilePublic   Boolean       @default(true)
+  headline          String
+  bio               String        @db.Text
+  hourlyRateGbp     Decimal?      @db.Decimal(10, 2)
+  yearsExperience   Int           @default(0)
+  oracleModules     String        @db.VarChar(500) // comma-separated: SCM,HCM,EBS,OIC,APEX
+  // Resume/CV upload — Milestone 2 onboarding. Optional; a freelancer can
+  // list gigs without one, same philosophy as isCertified below.
+  resumeUrl         String?
+  isCertified       Boolean       @default(false)  // optional badge, not required to list gigs
+  certifications    Certification[]
+  portfolioItems    PortfolioItem[]
+  education         Education[]
+  workExperience    WorkExperience[]
+  withdrawals       Withdrawal[]
+  gigs              Gig[]
+  reviews           Review[]      @relation("FreelancerReviews")
+  ratingAvg         Decimal       @default(0) @db.Decimal(3, 2)
+  ratingCount       Int           @default(0)
+  isApprovedToSell  Boolean       @default(true) // false while under manual review, if enabled later
+
+  // Trust Score — surfaced on freelancer profiles and rolled up into TeamScore
+  onTimeDeliveryRate    Decimal   @default(0) @db.Decimal(5, 2) // percentage, e.g. 96.00
+  avgResponseMinutes    Int       @default(0)
+  collaborationRating   Decimal   @default(0) @db.Decimal(3, 1) // out of 10
+  projectsCompleted     Int       @default(0)
+
+  // Trainer-specific — a freelancer can be a consultant, a trainer, or both.
+  // Deliberately NOT a separate model: training is still delivered via Gig
+  // (gigType=TRAINING) and booked via the existing Order flow, so these are
+  // just descriptive/filterable attributes, not a parallel booking system.
+  isConsultant            Boolean  @default(true)
+  isTrainer               Boolean  @default(false)
+  teachingExperienceYears Int?
+  maxStudentsPerSession   Int?
+  preferredTeachingMode   TeachingMode?
+  trainerBio              String?  @db.Text
+
+  availability      TrainerAvailability[]
+  availabilityExceptions TrainerAvailabilityException[]
+
+  teamMemberships   TeamMember[]
+  teamsLed          Team[]        @relation("TeamLeader")
+  subscription      Subscription?
+  projectApplications ProjectApplication[]
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([slug])
+  @@index([isCertified])
+  @@index([isTrainer])
+  // @@fulltext([headline, bio])
+}
+
+model Certification {
+  id                  String            @id @default(cuid())
+  freelancerProfileId String
+  freelancerProfile   FreelancerProfile @relation(fields: [freelancerProfileId], references: [id], onDelete: Cascade)
+  name                String            // e.g. "Oracle Cloud SCM 2024 Certified Implementation Specialist"
+  issuer              String            @default("Oracle")
+  credentialUrl       String?
+  issuedAt            DateTime?
+  verifiedByAdmin     Boolean           @default(false)
+
+  @@index([freelancerProfileId])
+}
+
+// FIXED (Milestone 3 gap): "Portfolio" previously meant a single italic
+// text line on a gig (portfolioNote in sample data) — not a real project
+// showcase. This is the actual feature: a small gallery of past work
+// samples on the freelancer's public profile.
+model PortfolioItem {
+  id                  String            @id @default(cuid())
+  freelancerProfileId String
+  freelancerProfile   FreelancerProfile @relation(fields: [freelancerProfileId], references: [id], onDelete: Cascade)
+  title               String
+  description         String            @db.Text
+  imageUrl            String?
+  // FIXED (real gap found during review): portfolio only supported a
+  // single static image — no way to show a work-experience video at all.
+  // An embed link (YouTube/Vimeo/Loom), not an uploaded file — full video
+  // file hosting is a meaningfully larger, riskier undertaking (storage
+  // cost, bandwidth, encoding) than this platform's existing S3-or-local
+  // upload pipeline is built for; embedding is the same pragmatic choice
+  // virtually every real freelance platform makes for portfolio video.
+  videoUrl            String?
+  projectUrl          String?
+  displayOrder        Int               @default(0)
+  createdAt           DateTime          @default(now())
+
+  @@index([freelancerProfileId])
+}
+
+// FIXED (Milestone 3 gap): no education history existed anywhere.
+// FIXED (real gap found during review): a freelancer profile had no way
+// to show prior work history at all — only formal Education existed.
+// Same simple, list-of-entries pattern already established there.
+model WorkExperience {
+  id                  String            @id @default(cuid())
+  freelancerProfileId String
+  freelancerProfile   FreelancerProfile @relation(fields: [freelancerProfileId], references: [id], onDelete: Cascade)
+  companyName         String
+  role                String
+  startYear           Int
+  endYear             Int?              // null means "Present" — still there
+  description         String?           @db.Text
+  displayOrder        Int               @default(0)
+
+  @@index([freelancerProfileId])
+}
+
+model Education {
+  id                  String            @id @default(cuid())
+  freelancerProfileId String
+  freelancerProfile   FreelancerProfile @relation(fields: [freelancerProfileId], references: [id], onDelete: Cascade)
+  institution         String
+  degree              String
+  fieldOfStudy        String?
+  graduationYear      Int?
+  displayOrder        Int               @default(0)
+
+  @@index([freelancerProfileId])
+}
+
+// Oracle Project Teams — the "hire a coordinated team, not a lone freelancer"
+// marketplace. A Team is led by one FreelancerProfile (the Team Leader) and
+// has zero-or-more other FreelancerProfiles as members, each with a role
+// label (e.g. "Finance Functional Consultant"). Teams are listed and booked
+// similarly to gigs, but priced as a day rate for the whole team rather than
+// per-package.
+model Team {
+  id                  String       @id @default(cuid())
+  slug                String       @unique
+  name                String       // e.g. "Oracle Finance Implementation Team"
+  description         String       @db.Text
+  teamLeaderId        String
+  teamLeader          FreelancerProfile @relation("TeamLeader", fields: [teamLeaderId], references: [id])
+  members             TeamMember[]
+  teamOrders          TeamOrder[]
+  projectApplications ProjectApplication[]
+
+  dailyRateGbp        Decimal      @db.Decimal(10, 2)
+  availableFromDate   DateTime?
+  estimatedWeeks      Int
+  status              GigStatus    @default(PENDING_REVIEW) // reuses gig approval lifecycle
+  reviewedAt          DateTime?
+  rejectionReason     String?      @db.Text
+
+  // Team Score — rolled up from member trust scores + delivery history,
+  // recalculated whenever a team project completes (see lib/teamScore.ts).
+  teamScore           Decimal      @default(0) @db.Decimal(3, 1) // out of 10
+  projectsCompleted   Int          @default(0)
+  budgetDeliveredGbp  Decimal      @default(0) @db.Decimal(12, 2)
+  successRate         Decimal      @default(0) @db.Decimal(5, 2) // percentage
+
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@index([slug])
+  @@index([status])
+  // @@fulltext([name, description])
+}
+
+model TeamMember {
+  id                  String            @id @default(cuid())
+  teamId              String
+  team                Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  freelancerProfileId String
+  freelancerProfile   FreelancerProfile @relation(fields: [freelancerProfileId], references: [id])
+  roleLabel           String            // e.g. "SCM Functional Consultant", "Integration Specialist"
+  displayOrder        Int               @default(0)
+  status              TeamMemberStatus  @default(ACTIVE)
+  replacedAt          DateTime?
+
+  @@unique([teamId, freelancerProfileId])
+  @@index([teamId])
+  @@index([freelancerProfileId])
+}
+
+// A client's request to engage a team — either an existing pre-built Team
+// (teamId set) or a custom composition assembled via the LEGO picker or the
+// AI recommendation flow (teamId null, customComposition holds the chosen
+// role/consultant pairs as JSON). This is a request/quote stage, not a paid
+// order — it becomes billable via milestone-based Orders once scoped.
+model TeamOrder {
+  id                  String          @id @default(cuid())
+  teamId              String?
+  team                Team?           @relation(fields: [teamId], references: [id])
+  customComposition   Json?           // [{ role, consultantSlug, consultantName, dayRateGbp }] when teamId is null
+  clientId            String
+  client              User            @relation("ClientTeamOrders", fields: [clientId], references: [id])
+  status              TeamOrderStatus @default(REQUESTED)
+  dailyRateGbp        Decimal         @db.Decimal(10, 2)
+  estimatedWeeks      Int
+  totalEstimateGbp    Decimal         @db.Decimal(12, 2)
+  requiredRoles       Json?           // questionnaire answers, when created via the AI recommender
+  depositPaidAt       DateTime?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  workspaceTasks      WorkspaceTask[]
+  workspaceNotes      WorkspaceNote[]
+  projectApplication  ProjectApplication?
+
+  @@index([teamId])
+  @@index([clientId])
+  @@index([status])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String   // e.g. "Oracle Fusion SCM", "Oracle EBS", "Oracle OIC", "Oracle APEX"
+  description String?  @db.Text
+  gigs        Gig[]
+  projectPostings ProjectPosting[]
+
+  @@index([slug])
+}
+
+model Gig {
+  id                  String            @id @default(cuid())
+  slug                String            @unique
+  freelancerProfileId String
+  freelancerProfile   FreelancerProfile @relation(fields: [freelancerProfileId], references: [id], onDelete: Cascade)
+  categoryId          String
+  category            Category          @relation(fields: [categoryId], references: [id])
+  title               String
+  description         String            @db.Text
+  // FIXED (Milestone 4 gap): no tags/keywords existed on a gig at all,
+  // beyond its single category. Comma-separated, same format convention as
+  // FreelancerProfile.oracleModules — searched via `contains` in
+  // searchGigs(), same as title/description.
+  tags                String?           @db.VarChar(300)
+  status              GigStatus         @default(DRAFT)
+  gigType             GigType           @default(CONSULTING)
+  level               CourseLevel?      // relevant for TRAINING/WORKSHOP; null for CONSULTING
+  // True for the ad-hoc Gig auto-created when a ProjectPosting application is
+  // accepted (see /api/projects/[id]/applications/[appId]/accept). These
+  // exist purely so the resulting engagement can use the normal Order/
+  // Milestone billing flow — they should never appear in public browse/
+  // search results, hence the exclusion filter in lib/queries.ts.
+  isProjectEngagement Boolean           @default(false)
+  coverImageUrl       String?
+  // FIXED (Milestone 5 gap): "Featured Listings" previously meant nothing
+  // more than "the 8 most recently created active gigs" — no actual
+  // curation existed. Admin-controlled (see /api/admin/gigs/[id]/feature).
+  isFeatured          Boolean           @default(false)
+  // FIXED (real gap found during review): "Featured" was entirely
+  // admin-curated with no self-service path — a freelancer had no way to
+  // pay for premium placement for their own gig. Nullable and
+  // time-limited rather than a boolean, since a purchased boost naturally
+  // expires; a gig is treated as boosted wherever boostedUntil is in the
+  // future, checked fresh rather than needing a background job to flip a
+  // flag back off.
+  boostedUntil        DateTime?
+  packages            GigPackage[]
+  orders              Order[]
+  reviews             Review[]
+  messages            Message[]
+  faqItems            GigFaqItem[]
+  extras              GigExtra[]
+
+  // Workshop-only scheduling fields (gigType = WORKSHOP). Null for consulting/training gigs.
+  sessionStartAt      DateTime?
+  sessionEndAt        DateTime?
+  maxSeats            Int?
+  seatsBooked         Int               @default(0)
+
+  // Admin review metadata (approval workflow)
+  reviewedAt          DateTime?
+  rejectionReason      String?          @db.Text
+
+  // Cancellation / rescheduling policy — mainly relevant for scheduled
+  // workshops and training sessions. Null means "platform default" (see
+  // lib/cancellationPolicy.ts) rather than "no policy".
+  cancellationWindowHours Int?     // e.g. 48 — free cancellation up to this many hours before sessionStartAt
+  latePenaltyPercent      Int?     // e.g. 50 — percentage of price forfeited if cancelled inside the window
+
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([freelancerProfileId])
+  @@index([gigType])
+  // FIXED (Milestone 5 review): this used to also declare
+  // `@@fulltext([title, description])`, which was never actually used —
+  // searchGigs() filters with Prisma's `contains` (SQL `LIKE '%query%'`),
+  // and a leading-wildcard LIKE cannot use a fulltext index at all (MySQL
+  // fulltext requires `MATCH() AGAINST()` syntax). Worse, actually
+  // switching to fulltext search here would likely make search *worse*:
+  // MySQL's default InnoDB fulltext minimum token length is 3 characters,
+  // and this platform's dominant search terms are short Oracle module
+  // acronyms — "AP", "AR", "GL" (2 chars) would silently match nothing at
+  // all in NATURAL LANGUAGE mode, and "SCM"/"OIC" sit right at the
+  // boundary. A decorative, unused index was worse than no index — it
+  // implied an optimization that wasn't happening and could mislead a
+  // future engineer into "fixing" it into fulltext search without
+  // realizing it would break acronym search. Removed rather than kept.
+  //
+  // The honest state of search performance: `status`/`categoryId`/
+  // `gigType` filtering IS index-accelerated (the indexes above), so LIKE
+  // scanning only happens within an already-narrowed ACTIVE-gigs-in-this-
+  // category subset, not the whole table. A true substring LIKE search
+  // fundamentally cannot be indexed in MySQL regardless — the real fix at
+  // meaningful scale is a dedicated search service (Algolia/Meilisearch),
+  // already noted as an out-of-scope, adequate-at-current-size item in
+  // FROZEN_REQUIREMENTS.md.
+}
+
+// FIXED (Milestone 4 gap): no FAQ concept existed on a gig at all.
+model GigFaqItem {
+  id            String   @id @default(cuid())
+  gigId         String
+  gig           Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  question      String
+  answer        String   @db.Text
+  displayOrder  Int      @default(0)
+
+  @@index([gigId])
+}
+
+// FIXED (real gap found during review): a classic marketplace feature —
+// optional paid add-ons on top of a package ("faster delivery +£30",
+// "extra revision +£15") — didn't exist anywhere. Priced and managed
+// independently of packages/tiers, so any package can be combined with
+// any subset of a gig's extras.
+model GigExtra {
+  id                  String   @id @default(cuid())
+  gigId               String
+  gig                 Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  title               String
+  description         String   @db.Text
+  priceGbp            Decimal  @db.Decimal(10, 2)
+  extraDeliveryDays   Int?     // e.g. "2 days faster" — optional, not every extra affects delivery time
+  displayOrder        Int      @default(0)
+
+  @@index([gigId])
+}
+
+model GigPackage {
+  id            String      @id @default(cuid())
+  gigId         String
+  gig           Gig         @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  tier          PackageTier
+  title         String
+  description   String      @db.Text
+  priceGbp      Decimal     @db.Decimal(10, 2)
+  deliveryDays  Int
+  revisions     Int         @default(1)
+  // Only meaningful for gigType=TRAINING packages — length of the 1:1/small
+  // group session in minutes. Null for consulting/workshop packages (workshop
+  // duration comes from the Gig's sessionStartAt/sessionEndAt instead).
+  sessionDurationMinutes Int?
+  orders        Order[]
+
+  @@index([gigId])
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  gigId           String
+  gig             Gig           @relation(fields: [gigId], references: [id])
+  gigPackageId    String
+  gigPackage      GigPackage    @relation(fields: [gigPackageId], references: [id])
+  clientId        String
+  client          User          @relation("ClientOrders", fields: [clientId], references: [id])
+  status          OrderStatus   @default(PENDING_PAYMENT)
+  totalPriceGbp   Decimal       @db.Decimal(10, 2)
+  platformFeeGbp  Decimal       @db.Decimal(10, 2)
+  stripePaymentId String?
+  // FIXED (Milestone 10 gap): no tax/VAT concept existed anywhere. Prices
+  // are treated as VAT-inclusive (what the client already pays doesn't
+  // change) — this is the extracted breakdown for invoicing/record-
+  // keeping, computed and stored at payment time so a historical invoice
+  // stays correct even if the platform's rate changes later.
+  vatRatePercent  Int           @default(20)
+  vatAmountGbp    Decimal       @default(0) @db.Decimal(10, 2)
+  // FIXED (Milestone 11 gap): OrderStatus.DISPUTED existed in the schema —
+  // same recurring pattern as DRAFT/PAUSED/ARCHIVED/DELIVERED/IN_REVISION
+  // before it — nothing ever set it. There was no way for either party to
+  // raise a dispute, and no admin resolution workflow at all.
+  disputeReason          String?   @db.Text
+  // FIXED (real gap found during review): a dispute can be raised from
+  // IN_PROGRESS, DELIVERED, or IN_REVISION — but dismissing a dispute (or
+  // a partial refund, which keeps the order alive) previously always
+  // hardcoded the order back to IN_PROGRESS regardless of where it
+  // actually started. A dispute raised on already-DELIVERED work, once
+  // dismissed, would silently lose the fact that work had been
+  // submitted — the client would see it as if the freelancer had never
+  // delivered, even though they genuinely had.
+  statusBeforeDispute    OrderStatus?
+  disputeRaisedByUserId  String?
+  disputeRaisedAt        DateTime?
+  disputeResolutionNotes String?   @db.Text
+  // Snapshot of any GigExtra add-ons selected at checkout — [{title,
+  // priceGbp}] — same philosophy as gigPackage pricing already being
+  // snapshotted into totalPriceGbp rather than referenced live: an extra
+  // could change price or be deleted later, but this order's invoice
+  // should always show exactly what was actually bought.
+  extrasSnapshot        Json?
+  // Set only for gigType=TRAINING orders — the booked 1:1/small-group session
+  // time. Consulting orders (project-style, no fixed session) and workshop
+  // orders (schedule lives on the Gig itself, shared across all seats) leave
+  // these null.
+  scheduledAt     DateTime?
+  scheduledEndAt  DateTime?
+  milestones      Milestone[]
+  messages        Message[]
+  workspaceTasks  WorkspaceTask[]
+  workspaceNotes  WorkspaceNote[]
+  projectApplication ProjectApplication?
+  review          Review?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([gigId])
+  @@index([clientId])
+  @@index([status])
+}
+
+model Milestone {
+  id          String          @id @default(cuid())
+  orderId     String
+  order       Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  title       String
+  amountGbp   Decimal         @db.Decimal(10, 2)
+  status      MilestoneStatus @default(PENDING)
+  dueDate     DateTime?
+  submittedAt DateTime?
+  approvedAt  DateTime?
+  // FIXED (Milestone 8 gap): there was no way for a client to reject
+  // submitted work and ask for changes — only "approve" existed. This is
+  // also why OrderStatus.DELIVERED/IN_REVISION were unreachable: nothing
+  // ever produced a "sent back for changes" event to represent.
+  revisionNote        String?   @db.Text
+  revisionRequestedAt DateTime?
+
+  @@index([orderId])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  orderId    String?
+  order      Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  // Lets a conversation started from a gig page ("Contact about this gig")
+  // carry structured context back to that gig, instead of only a text
+  // mention in the message body.
+  gigId      String?
+  gig        Gig?     @relation(fields: [gigId], references: [id], onDelete: SetNull)
+  senderId   String
+  sender     User     @relation("MessagesSent", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User     @relation("MessagesReceived", fields: [receiverId], references: [id])
+  body       String   @db.Text
+  // FIXED (Milestone 9 gap): no attachment support existed at all —
+  // explicitly flagged as out of scope in an earlier pass, now genuinely
+  // built. A message body is allowed to be empty when there's an
+  // attachment (enforced in the API layer, not here) — "just a photo,
+  // no caption" is a normal chat message.
+  attachmentUrl  String?
+  attachmentType String?  // the uploaded file's MIME type, so the UI knows whether to render an image preview or a document download link
+  readAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([orderId])
+  @@index([gigId])
+  @@index([senderId])
+  @@index([receiverId])
+}
+
+model Review {
+  id                  String            @id @default(cuid())
+  orderId             String            @unique
+  order               Order             @relation(fields: [orderId], references: [id])
+  gigId               String
+  gig                 Gig               @relation(fields: [gigId], references: [id])
+  freelancerProfileId String
+  freelancerProfile   FreelancerProfile @relation("FreelancerReviews", fields: [freelancerProfileId], references: [id])
+  authorId            String
+  author              User              @relation("ReviewsWritten", fields: [authorId], references: [id])
+  rating              Int               // 1-5
+  comment             String            @db.Text
+  createdAt           DateTime          @default(now())
+  // FIXED (real gap found during review): no way for a seller to respond
+  // to a review at all — a standard, expected feature in every real
+  // marketplace (Fiverr, Upwork, Amazon all have it), completely absent
+  // here. One response per review, same one-shot pattern as the review
+  // itself.
+  sellerResponse      String?           @db.Text
+  sellerRespondedAt   DateTime?
+
+  @@index([gigId])
+  @@index([freelancerProfileId])
+}
+
+// Recurring weekly availability, always stored in UTC. A trainer might have
+// multiple rows for the same day if they have a split schedule (e.g. morning
+// and evening blocks). The client is responsible for converting to/from the
+// trainer's local timezone for display; storing UTC here avoids daylight-
+// saving bugs at the data layer.
+model TrainerAvailability {
+  id                  String            @id @default(cuid())
+  freelancerProfileId String
+  freelancerProfile   FreelancerProfile @relation(fields: [freelancerProfileId], references: [id], onDelete: Cascade)
+  dayOfWeek           Int               // 0 = Sunday .. 6 = Saturday (UTC)
+  startMinuteUtc      Int               // minutes since midnight UTC, e.g. 540 = 09:00
+  endMinuteUtc        Int
+  timezone            String            @default("UTC") // IANA name, e.g. "Europe/London" — for display only, not conflict math
+
+  @@index([freelancerProfileId])
+}
+
+// One-off exceptions to the recurring schedule — holidays, a single blocked
+// afternoon, or (less commonly) an extra one-off slot. isAvailable=false
+// blocks the date; isAvailable=true adds an extra slot outside the normal
+// weekly pattern.
+model TrainerAvailabilityException {
+  id                  String            @id @default(cuid())
+  freelancerProfileId String
+  freelancerProfile   FreelancerProfile @relation(fields: [freelancerProfileId], references: [id], onDelete: Cascade)
+  date                DateTime          // stored as UTC midnight for that calendar date
+  startMinuteUtc      Int?              // null + isAvailable=false means "whole day blocked"
+  endMinuteUtc        Int?
+  isAvailable         Boolean           @default(false)
+  note                String?           // e.g. "Public holiday", "Booked externally"
+
+  @@index([freelancerProfileId, date])
+}
+
+// "Oracle Team Pro" subscription — one per freelancer, gates the free-tier
+// limit on how many teams a single freelancer can lead (see
+// lib/constants.ts::FREE_TIER_MAX_TEAMS_LED). Payment is a stub, same honest
+// pattern as Order/TeamOrder — see /api/subscriptions/checkout.
+// FIXED (Milestone 10 gap): there was no transaction ledger anywhere —
+// only a bare stripePaymentId string on Order. This is a real, append-only
+// audit trail distinct from Order's own current-state fields: an Order
+// only ever shows its latest status, but a ledger records every discrete
+// payment EVENT (a payment, a refund, a payout), which is what "Test
+// Payment History" and any future accounting/dispute work actually needs.
+enum TransactionType {
+  PAYMENT
+  REFUND
+  PAYOUT
+  DEPOSIT
+  // FIXED (Milestone 12 gap): no wallet/withdrawal concept existed at all.
+  WITHDRAWAL
+  // FIXED (real gap found during review): a freelancer paying the
+  // platform to feature their own gig is a genuinely different kind of
+  // transaction than PAYMENT (a client paying for an order) — a separate
+  // type keeps platform revenue reporting accurate rather than mixing
+  // the two under one label.
+  BOOST_PURCHASE
+}
+
+enum TransactionStatus {
+  SUCCEEDED
+  FAILED
+}
+
+// FIXED (Milestone 14 gap): "In-App" notifications never existed anywhere
+// on this platform — every notification was email-only. This is the real
+// thing: a per-user feed with unread status, not just a duplicate of the
+// email log. Deliberately generic (type + title + body + linkUrl) rather
+// than one model per event type, so new notification triggers don't need
+// a schema change to add.
+// FIXED (Milestone 16 gap): no audit log existed anywhere — every admin
+// action (suspend, approve, reject, resolve a dispute) happened with no
+// durable record of who did it or when, beyond whatever the affected
+// record's own current-state fields show. Append-only by convention (no
+// update/delete routes are ever built against this model) — a real audit
+// trail must not be editable after the fact, including by another admin.
+model AuditLog {
+  id           String   @id @default(cuid())
+  adminUserId  String
+  adminUser    User     @relation(fields: [adminUserId], references: [id])
+  action       String   // e.g. "user.suspend", "gig.approve" — dot-namespaced by convention, not a hard enum, so new admin actions don't need a migration to log
+  targetType   String   // e.g. "User", "Gig", "Order"
+  targetId     String
+  details      String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  @@index([adminUserId])
+  @@index([targetType, targetId])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String    // e.g. "order", "payment", "message" — for icon/grouping, not a hard enum, so new categories don't need a migration
+  title     String
+  body      String    @db.Text
+  linkUrl   String?   // where clicking the notification should take the user
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([userId, readAt])
+}
+
+model Transaction {
+  id            String             @id @default(cuid())
+  // Nullable and independent rather than a hard foreign key to Order,
+  // since a transaction can also originate from a TeamOrder (deposit) or,
+  // in the future, a Subscription — this is a general ledger, not
+  // Order-specific.
+  orderId       String?
+  teamOrderId   String?
+  userId        String
+  user          User               @relation(fields: [userId], references: [id])
+  type          TransactionType
+  status        TransactionStatus
+  amountGbp     Decimal            @db.Decimal(10, 2)
+  reference     String?            // the simulated/real payment processor's reference id
+  failureReason String?
+  createdAt     DateTime           @default(now())
+
+  @@index([orderId])
+  @@index([teamOrderId])
+  @@index([userId])
+}
+
+// FIXED (Milestone 12 gap): a withdrawal is a distinct request/lifecycle
+// entity, not just a ledger entry — this is what "Test Withdrawal"
+// actually needs. Simulated as instantly completing (consistent with
+// every other payment event on this platform being a stub) rather than a
+// PENDING state that waits on nothing — a real bank transfer integration
+// would introduce genuine pending time; this doesn't have one yet.
+model Withdrawal {
+  id                  String            @id @default(cuid())
+  freelancerProfileId String
+  freelancerProfile   FreelancerProfile @relation(fields: [freelancerProfileId], references: [id], onDelete: Cascade)
+  amountGbp           Decimal           @db.Decimal(10, 2)
+  status              WithdrawalStatus  @default(COMPLETED)
+  requestedAt         DateTime          @default(now())
+  completedAt         DateTime?
+
+  @@index([freelancerProfileId])
+}
+
+enum WithdrawalStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model Subscription {
+  id                  String             @id @default(cuid())
+  freelancerProfileId String             @unique
+  freelancerProfile   FreelancerProfile  @relation(fields: [freelancerProfileId], references: [id], onDelete: Cascade)
+  plan                String             @default("TEAM_PRO")
+  priceGbpPerMonth    Decimal            @db.Decimal(10, 2) @default(99)
+  status              SubscriptionStatus @default(ACTIVE)
+  currentPeriodEnd    DateTime
+  cancelledAt         DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  @@index([status])
+}
+
+// Shared Project Workspace — a lightweight task list + decision log attached
+// to either a gig Order or a TeamOrder. Deliberately simple for a first
+// pass: no file attachments (that needs the storage adapter wired to real
+// cloud storage first — see lib/storage.ts), no rich text, just enough
+// structure for a client and freelancer/team to track "what's left" and
+// "what did we decide" in one shared place instead of scattered messages.
+model WorkspaceTask {
+  id             String              @id @default(cuid())
+  orderId        String?
+  order          Order?              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  teamOrderId    String?
+  teamOrder      TeamOrder?          @relation(fields: [teamOrderId], references: [id], onDelete: Cascade)
+  title          String
+  status         WorkspaceTaskStatus @default(TODO)
+  createdByUserId String
+  createdBy      User                @relation("WorkspaceTasksCreated", fields: [createdByUserId], references: [id])
+  assignedToUserId String?
+  assignedTo     User?               @relation("WorkspaceTasksAssigned", fields: [assignedToUserId], references: [id])
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([orderId])
+  @@index([teamOrderId])
+  @@index([assignedToUserId])
+}
+
+model WorkspaceNote {
+  id             String     @id @default(cuid())
+  orderId        String?
+  order          Order?     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  teamOrderId    String?
+  teamOrder      TeamOrder? @relation(fields: [teamOrderId], references: [id], onDelete: Cascade)
+  authorUserId   String
+  author         User       @relation("WorkspaceNotesAuthored", fields: [authorUserId], references: [id])
+  body           String     @db.Text
+  // FIXED (real gap found during review): the only way to share a file
+  // during an active order was buried in chat — no dedicated document
+  // capability existed in the shared workspace itself, even though tasks
+  // and notes already live there. Nullable, so existing plain-text notes
+  // are entirely unaffected.
+  attachmentUrl  String?
+  attachmentName String?
+  createdAt      DateTime   @default(now())
+
+  @@index([orderId])
+  @@index([teamOrderId])
+}
+
+// Corporate Project Matching / open-project-posting board — a client posts a
+// project brief, freelancers apply with a proposal, the client picks one.
+// Deliberately scoped to individual-freelancer applications for this first
+// pass (not Team applications) to keep the accept/award flow simple; a
+// client who wants a full team can still use the existing AI recommender /
+// Build Your Own Team flows separately.
+model ProjectPosting {
+  id                  String                @id @default(cuid())
+  slug                String                @unique
+  clientId            String
+  client              User                  @relation("ClientProjectPostings", fields: [clientId], references: [id])
+  title               String
+  description         String                @db.Text
+  categoryId          String
+  category            Category              @relation(fields: [categoryId], references: [id])
+  budgetMinGbp        Decimal?              @db.Decimal(10, 2)
+  budgetMaxGbp        Decimal?              @db.Decimal(10, 2)
+  timelineWeeks       Int?
+  status              ProjectPostingStatus  @default(DRAFT)
+  rejectionReason     String?               @db.Text
+  applications        ProjectApplication[]
+  awardedApplicationId String?              @unique
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  // FIXED (Post Requirement expansion): the fields below extend "Post
+  // Requirement" toward genuine Oracle-support-ticket detail, requested
+  // as a new capability on the existing posting flow — not a separate
+  // domain model. Every one is optional/nullable, so no existing posting
+  // or code path that reads/writes a ProjectPosting is disturbed; a
+  // requirement can be as simple as before (title/description/budget) or
+  // as detailed as these fields allow.
+  businessProcess     String?               // e.g. "Purchase Orders"
+  subProcess          String?               // e.g. "Approval Rules"
+  oracleVersion       String?
+  environment         RequirementEnvironment?
+  errorCode           String?
+  errorMessage        String?               @db.Text
+  stepsToReproduce    String?               @db.Text
+  expectedBehaviour   String?               @db.Text
+  actualBehaviour     String?               @db.Text
+  priority            RequirementPriority?
+  severity            RequirementSeverity?
+  pricingType         RequirementPricingType?
+  tags                String?               // comma-separated, same convention as Gig.tags
+  attachments         ProjectPostingAttachment[]
+
+  @@index([categoryId])
+  @@index([status])
+  // FIXED (Milestone 5/6): same decorative-index issue already found and
+  // fixed on Gig — this declared `@@fulltext([title, description])` too,
+  // but nothing ever queried it with Prisma's `.search`, and browsing
+  // projects previously had no search at all (see getOpenProjects below).
+  // Removed rather than wired up as real fulltext search, for the same
+  // reason as Gig: MySQL's default fulltext minimum token length would
+  // silently break short Oracle-acronym searches ("AP", "GL", "OIC").
+}
+
+// FIXED (Post Requirement expansion): screenshots/videos/log files
+// attached at requirement-creation time — distinct from message
+// attachments, which only ever existed *after* a conversation started.
+// A requirement can have several, hence a separate model rather than a
+// single URL field.
+model ProjectPostingAttachment {
+  id               String         @id @default(cuid())
+  projectPostingId String
+  projectPosting   ProjectPosting @relation(fields: [projectPostingId], references: [id], onDelete: Cascade)
+  url              String
+  fileType         String         // the uploaded file's MIME type
+  fileName         String
+  createdAt        DateTime       @default(now())
+
+  @@index([projectPostingId])
+}
+
+model ProjectApplication {
+  id                  String                    @id @default(cuid())
+  projectPostingId    String
+  projectPosting      ProjectPosting            @relation(fields: [projectPostingId], references: [id], onDelete: Cascade)
+  // Exactly one of freelancerProfileId or teamId is set — enforced in the
+  // API layer (Prisma/MySQL don't portably support a CHECK constraint for
+  // "exactly one of two nullable columns"). An individual freelancer applies
+  // via freelancerProfileId; a team leader applies on behalf of their team
+  // via teamId.
+  freelancerProfileId String?
+  freelancerProfile   FreelancerProfile?        @relation(fields: [freelancerProfileId], references: [id])
+  teamId              String?
+  team                Team?                     @relation(fields: [teamId], references: [id])
+  coverLetter         String                    @db.Text
+  proposedPriceGbp    Decimal                   @db.Decimal(10, 2)
+  proposedWeeks       Int
+  status              ProjectApplicationStatus  @default(PENDING)
+  resultingOrderId    String?                   @unique
+  resultingOrder      Order?                    @relation(fields: [resultingOrderId], references: [id])
+  resultingTeamOrderId String?                  @unique
+  resultingTeamOrder  TeamOrder?                @relation(fields: [resultingTeamOrderId], references: [id])
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  @@unique([projectPostingId, freelancerProfileId])
+  @@unique([projectPostingId, teamId])
+  @@index([projectPostingId])
+  @@index([freelancerProfileId])
+  @@index([teamId])
+}

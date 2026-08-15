@@ -1,0 +1,13 @@
+<!-- FIXED (real gap found during review): no favicon existed anywhere in
+     the project, and nothing referenced one — the browser tab would show
+     a blank/generic icon. This is a genuine, functional placeholder using
+     the platform's own established brand color (#1DBF73, see
+     tailwind.config.ts), not real brand/logo design — no image-generation
+     tool is available to produce that. Next.js's App Router picks this up
+     automatically by convention (a file literally named icon.svg directly
+     in app/) with no code needing to reference it. Swap this file for a
+     real designed logo before launch. -->
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <rect width="64" height="64" rx="14" fill="#1DBF73"/>
+  <text x="32" y="43" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#0B2E28" text-anchor="middle">OG</text>
+</svg>
