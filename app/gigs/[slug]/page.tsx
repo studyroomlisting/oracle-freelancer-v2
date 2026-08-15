@@ -19,6 +19,15 @@ async function getGig(slug: string) {
           packages: { orderBy: { priceGbp: "asc" } },
           faqItems: { orderBy: { displayOrder: "asc" } },
           extras: { orderBy: { displayOrder: "asc" } },
+          // ADDED (real gap found during review): the review section below
+          // always rendered 3 hardcoded names (Mark T., Sophie L., Rahul
+          // D.) regardless of whether this gig had any real reviews at
+          // all — every gig on the platform showed the exact same fake
+          // testimonials. Reviews are already a real, working feature
+          // (ReviewForm posts to /api/orders/[id]/review and is tied to a
+          // completed order) — this just wires the real data into the
+          // one page that was never updated to read it.
+          reviews: { orderBy: { createdAt: "desc" }, include: { author: true } },
         },
       });
       if (gig) return gig;
@@ -32,6 +41,7 @@ async function getGig(slug: string) {
     id: `sample-gig-${sample.slug}`,
     faqItems: [] as { id: string; question: string; answer: string }[],
     extras: [] as { id: string; title: string; description: string; priceGbp: number; extraDeliveryDays: number | null }[],
+    reviews: [] as { id: string; rating: number; comment: string; author: { fullName: string } }[],
     title: sample.title,
     description: sample.description,
     portfolioNote: sample.portfolioNote,
@@ -67,12 +77,6 @@ const sampleFaqs = [
   { q: "Do you work directly in our Oracle instance?", a: "Yes — I work in your sandbox/test environment first, then support migration to production once you approve the configuration." },
   { q: "What do you need from us to get started?", a: "Read access to the relevant environment, a point of contact for business rules, and any existing process documentation you have." },
   { q: "Can you extend scope beyond the package?", a: "Yes, extra requirements can be added as a custom offer after we scope the gap together." },
-];
-
-const sampleReviews = [
-  { author: "Mark T.", rating: 5, text: "Delivered exactly to spec and explained every configuration choice clearly. Would hire again for the next phase." },
-  { author: "Sophie L.", rating: 5, text: "Communicated proactively, flagged a data issue before it became a problem. Excellent technical depth." },
-  { author: "Rahul D.", rating: 4, text: "Solid delivery, one revision needed for a naming convention mismatch but resolved same day." },
 ];
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
@@ -245,18 +249,22 @@ export default async function GigDetailPage({ params }: { params: { slug: string
             <span className="stars">★★★★★</span> {Number(gig.freelancerProfile.ratingAvg).toFixed(1)} ({gig.freelancerProfile.ratingCount} reviews)
           </h2>
           <div className="flex flex-col divide-y divide-neutral-200 border-t border-neutral-200 mt-3">
-            {sampleReviews.map((r) => (
-              <div key={r.author} className="py-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-700 flex items-center justify-center text-xs font-semibold">
-                    {r.author.charAt(0)}
+            {gig.reviews.length === 0 ? (
+              <p className="text-sm text-neutral-500 py-4">No reviews yet — be the first client to leave one after this gig is delivered.</p>
+            ) : (
+              gig.reviews.map((r: any) => (
+                <div key={r.id} className="py-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-700 flex items-center justify-center text-xs font-semibold">
+                      {r.author.fullName.charAt(0)}
+                    </div>
+                    <span className="text-sm font-semibold text-neutral-900">{r.author.fullName}</span>
+                    <span className="stars text-xs">{"★".repeat(r.rating)}</span>
                   </div>
-                  <span className="text-sm font-semibold text-neutral-900">{r.author}</span>
-                  <span className="stars text-xs">{"★".repeat(r.rating)}</span>
+                  <p className="text-sm text-neutral-600">{r.comment}</p>
                 </div>
-                <p className="text-sm text-neutral-600">{r.text}</p>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>
