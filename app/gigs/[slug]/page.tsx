@@ -73,12 +73,6 @@ async function getGig(slug: string) {
   };
 }
 
-const sampleFaqs = [
-  { q: "Do you work directly in our Oracle instance?", a: "Yes — I work in your sandbox/test environment first, then support migration to production once you approve the configuration." },
-  { q: "What do you need from us to get started?", a: "Read access to the relevant environment, a point of contact for business rules, and any existing process documentation you have." },
-  { q: "Can you extend scope beyond the package?", a: "Yes, extra requirements can be added as a custom offer after we scope the gap together." },
-];
-
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const gig = await getGig(params.slug);
   if (!gig) return { title: "Gig not found — OracleGigs" };
@@ -232,17 +226,19 @@ export default async function GigDetailPage({ params }: { params: { slug: string
           </div>
         )}
 
-        <div>
-          <h2 className="text-lg font-bold text-neutral-900 mb-3">FAQ</h2>
-          <div className="flex flex-col divide-y divide-neutral-200 border-t border-b border-neutral-200">
-            {sampleFaqs.map((f) => (
-              <div key={f.q} className="py-4">
-                <p className="text-sm font-semibold text-neutral-900 mb-1">{f.q}</p>
-                <p className="text-sm text-neutral-600">{f.a}</p>
-              </div>
-            ))}
+        {gig.faqItems.length > 0 && (
+          <div>
+            <h2 className="text-lg font-bold text-neutral-900 mb-3">FAQ</h2>
+            <div className="flex flex-col divide-y divide-neutral-200 border-t border-b border-neutral-200">
+              {gig.faqItems.map((f: any) => (
+                <div key={f.id} className="py-4">
+                  <p className="text-sm font-semibold text-neutral-900 mb-1">{f.question}</p>
+                  <p className="text-sm text-neutral-600">{f.answer}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div>
           <h2 className="text-lg font-bold text-neutral-900 mb-1">
