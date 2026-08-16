@@ -57,7 +57,7 @@ async function getFreelancer(slug: string) {
     yearsExperience: 8,
     hourlyRateGbp: 65,
     ...findSampleTrustScore(sample.freelancerSlug),
-    user: { id: `sample-user-${sample.freelancerSlug}`, fullName: sample.freelancerName },
+    user: { id: `sample-user-${sample.freelancerSlug}`, fullName: sample.freelancerName, avatarUrl: null as string | null },
     certifications: sample.isCertified
       ? [{ id: "1", name: "Oracle Cloud Implementation Specialist", issuer: "Oracle", verifiedByAdmin: true }]
       : [],
