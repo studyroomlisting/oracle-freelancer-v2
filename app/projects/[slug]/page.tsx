@@ -113,6 +113,30 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
         {posting.timelineWeeks && <span>{posting.timelineWeeks} weeks</span>}
       </div>
 
+      {/* ADDED (real gap found during review): the client who posted this
+          — name, avatar, and when — was fetched (`client: true` in the
+          query above) but never rendered anywhere on this page. Same
+          avatar-with-fallback pattern used everywhere else on the
+          platform (real photo if set, initial-letter circle otherwise). */}
+      <div className="flex items-center gap-3 mb-6 pb-6 border-b border-neutral-200">
+        <div className="w-10 h-10 rounded-full bg-neutral-800 text-white flex items-center justify-center font-semibold text-sm shrink-0 overflow-hidden">
+          {posting.client.avatarUrl ? (
+            <img src={posting.client.avatarUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            posting.client.fullName.charAt(0)
+          )}
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-neutral-900">
+            {posting.client.fullName}
+            {posting.client.companyName ? ` · ${posting.client.companyName}` : ""}
+          </p>
+          <p className="text-xs text-neutral-500">
+            Posted {new Date(posting.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+          </p>
+        </div>
+      </div>
+
       <p className="text-sm text-neutral-700 leading-relaxed mb-8">{posting.description}</p>
 
       {(posting.businessProcess || posting.environment || posting.errorCode || posting.priority || posting.severity || posting.tags) && (
