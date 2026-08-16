@@ -155,6 +155,7 @@ export default async function FreelancerProfilePage({ params }: { params: { slug
                   title: g.title,
                   freelancerName: freelancer.user.fullName,
                   freelancerSlug: freelancer.slug,
+                  freelancerAvatarUrl: freelancer.user.avatarUrl ?? null,
                   sellerLevel: (freelancer as any).sellerLevel,
                   isCertified: freelancer.isCertified,
                   ratingAvg: Number(freelancer.ratingAvg),

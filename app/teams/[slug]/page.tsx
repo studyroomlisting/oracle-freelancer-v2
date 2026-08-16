@@ -61,8 +61,12 @@ export default async function TeamDetailPage({ params }: { params: { slug: strin
           <div className="flex flex-col gap-4">
             <div className="card p-4 border-l-4 border-l-brand-500">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-full bg-neutral-800 text-white flex items-center justify-center font-semibold">
-                  {leader.name.charAt(0)}
+                <div className="w-10 h-10 rounded-full bg-neutral-800 text-white flex items-center justify-center font-semibold overflow-hidden">
+                  {leader.avatarUrl ? (
+                    <img src={leader.avatarUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    leader.name.charAt(0)
+                  )}
                 </div>
                 <div>
                   <Link href={`/freelancers/${leader.slug}`} className="text-sm font-bold text-neutral-900 hover:underline">
@@ -88,8 +92,12 @@ export default async function TeamDetailPage({ params }: { params: { slug: strin
             {others.map((m) => (
               <div key={m.slug + m.roleLabel} className="card p-4">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full bg-neutral-200 text-neutral-700 flex items-center justify-center font-semibold">
-                    {m.name.charAt(0)}
+                  <div className="w-10 h-10 rounded-full bg-neutral-200 text-neutral-700 flex items-center justify-center font-semibold overflow-hidden">
+                    {m.avatarUrl ? (
+                      <img src={m.avatarUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      m.name.charAt(0)
+                    )}
                   </div>
                   <div>
                     <Link href={`/freelancers/${m.slug}`} className="text-sm font-bold text-neutral-900 hover:underline">

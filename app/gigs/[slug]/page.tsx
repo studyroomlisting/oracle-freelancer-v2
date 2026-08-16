@@ -41,7 +41,7 @@ async function getGig(slug: string) {
     id: `sample-gig-${sample.slug}`,
     faqItems: [] as { id: string; question: string; answer: string }[],
     extras: [] as { id: string; title: string; description: string; priceGbp: number; extraDeliveryDays: number | null }[],
-    reviews: [] as { id: string; rating: number; comment: string; author: { fullName: string } }[],
+    reviews: [] as { id: string; rating: number; comment: string; author: { fullName: string; avatarUrl: string | null } }[],
     title: sample.title,
     description: sample.description,
     portfolioNote: sample.portfolioNote,
@@ -57,7 +57,7 @@ async function getGig(slug: string) {
       isCertified: sample.isCertified,
       ratingAvg: sample.ratingAvg,
       ratingCount: sample.ratingCount,
-      user: { id: `sample-user-${sample.freelancerSlug}`, fullName: sample.freelancerName },
+      user: { id: `sample-user-${sample.freelancerSlug}`, fullName: sample.freelancerName, avatarUrl: null as string | null },
       certifications: [],
     },
     packages:
@@ -131,8 +131,12 @@ export default async function GigDetailPage({ params }: { params: { slug: string
           </div>
           <h1 className="text-2xl sm:text-[26px] font-bold text-neutral-900 mt-2 mb-5">{gig.title}</h1>
           <div className="flex flex-wrap items-center gap-3 pb-5 border-b border-neutral-200">
-            <div className="w-9 h-9 rounded-full bg-neutral-800 text-white flex items-center justify-center text-sm font-semibold">
-              {gig.freelancerProfile.user.fullName.charAt(0)}
+            <div className="w-9 h-9 rounded-full bg-neutral-800 text-white flex items-center justify-center text-sm font-semibold overflow-hidden">
+              {gig.freelancerProfile.user.avatarUrl ? (
+                <img src={gig.freelancerProfile.user.avatarUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                gig.freelancerProfile.user.fullName.charAt(0)
+              )}
             </div>
             <div>
               <Link href={`/freelancers/${gig.freelancerProfile.slug}`} className="text-sm font-bold text-neutral-900 hover:underline">
@@ -251,8 +255,12 @@ export default async function GigDetailPage({ params }: { params: { slug: string
               gig.reviews.map((r: any) => (
                 <div key={r.id} className="py-4">
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-700 flex items-center justify-center text-xs font-semibold">
-                      {r.author.fullName.charAt(0)}
+                    <div className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-700 flex items-center justify-center text-xs font-semibold overflow-hidden">
+                      {r.author.avatarUrl ? (
+                        <img src={r.author.avatarUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        r.author.fullName.charAt(0)
+                      )}
                     </div>
                     <span className="text-sm font-semibold text-neutral-900">{r.author.fullName}</span>
                     <span className="stars text-xs">{"★".repeat(r.rating)}</span>
@@ -288,8 +296,12 @@ export default async function GigDetailPage({ params }: { params: { slug: string
           <div className="card p-5">
             <h3 className="text-sm font-bold text-neutral-900 mb-3">About the seller</h3>
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-11 h-11 rounded-full bg-neutral-800 text-white flex items-center justify-center font-semibold">
-                {gig.freelancerProfile.user.fullName.charAt(0)}
+              <div className="w-11 h-11 rounded-full bg-neutral-800 text-white flex items-center justify-center font-semibold overflow-hidden">
+                {gig.freelancerProfile.user.avatarUrl ? (
+                  <img src={gig.freelancerProfile.user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  gig.freelancerProfile.user.fullName.charAt(0)
+                )}
               </div>
               <div>
                 <p className="text-sm font-bold text-neutral-900">{gig.freelancerProfile.user.fullName}</p>

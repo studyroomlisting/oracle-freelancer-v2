@@ -20,6 +20,7 @@ function mapGigToCard(g: any): GigCardData {
     title: g.title,
     freelancerName: g.freelancerProfile.user.fullName,
     freelancerSlug: g.freelancerProfile.slug,
+    freelancerAvatarUrl: g.freelancerProfile.user.avatarUrl ?? null,
     sellerLevel: sellerLevelFor(g.freelancerProfile.ratingCount),
     isCertified: g.freelancerProfile.isCertified,
     ratingAvg: Number(g.freelancerProfile.ratingAvg),
@@ -374,6 +375,7 @@ export type NormalizedTeamMember = {
   avgResponseMinutes: number;
   collaborationRating: number;
   projectsCompleted: number;
+  avatarUrl: string | null;
 };
 
 export type NormalizedTeam = {
@@ -423,6 +425,7 @@ function normalizeSampleTeam(t: (typeof sampleTeams)[number]): NormalizedTeam {
       avgResponseMinutes: m.avgResponseMinutes,
       collaborationRating: m.collaborationRating,
       projectsCompleted: m.projectsCompleted,
+      avatarUrl: null,
     })),
   };
 }
@@ -456,6 +459,7 @@ function normalizeDbTeam(t: any): NormalizedTeam {
       avgResponseMinutes: m.freelancerProfile.avgResponseMinutes,
       collaborationRating: Number(m.freelancerProfile.collaborationRating),
       projectsCompleted: m.freelancerProfile.projectsCompleted,
+      avatarUrl: m.freelancerProfile.user.avatarUrl ?? null,
     })),
   };
 }

@@ -5,6 +5,7 @@ export type GigCardData = {
   title: string;
   freelancerName: string;
   freelancerSlug: string;
+  freelancerAvatarUrl?: string | null;
   sellerLevel?: string;
   isCertified: boolean;
   ratingAvg: number;
@@ -38,8 +39,12 @@ export default function GigCard({ gig }: { gig: GigCardData }) {
       </div>
       <div className="p-3.5 flex flex-col gap-1.5">
         <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-full bg-neutral-800 text-white text-[10px] font-semibold flex items-center justify-center">
-            {gig.freelancerName.charAt(0)}
+          <div className="w-5 h-5 rounded-full bg-neutral-800 text-white text-[10px] font-semibold flex items-center justify-center overflow-hidden">
+            {gig.freelancerAvatarUrl ? (
+              <img src={gig.freelancerAvatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              gig.freelancerName.charAt(0)
+            )}
           </div>
           <span className="text-[13px] font-semibold text-neutral-900">{gig.freelancerName}</span>
         </div>
