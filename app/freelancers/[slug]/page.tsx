@@ -99,8 +99,12 @@ export default async function FreelancerProfilePage({ params }: { params: { slug
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-3 gap-10">
       <div className="lg:col-span-2 flex flex-col gap-8">
         <div className="flex flex-col sm:flex-row gap-5 pb-6 border-b border-neutral-200">
-          <div className="w-20 h-20 rounded-full bg-neutral-800 text-white flex items-center justify-center text-2xl font-bold shrink-0">
-            {freelancer.user.fullName.charAt(0)}
+          <div className="w-20 h-20 rounded-full bg-neutral-800 text-white flex items-center justify-center text-2xl font-bold shrink-0 overflow-hidden">
+            {freelancer.user.avatarUrl ? (
+              <img src={freelancer.user.avatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              freelancer.user.fullName.charAt(0)
+            )}
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">

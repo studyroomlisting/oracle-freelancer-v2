@@ -617,7 +617,16 @@ export async function getPlatformStats() {
   }
 }
 
-export type TopFreelancer = { name: string; slug: string; headline: string; ratingAvg: number; ratingCount: number; isCertified: boolean; sellerLevel: string };
+export type TopFreelancer = {
+  name: string;
+  slug: string;
+  headline: string;
+  ratingAvg: number;
+  ratingCount: number;
+  isCertified: boolean;
+  sellerLevel: string;
+  avatarUrl: string | null;
+};
 
 export type PaginatedFreelancers = { freelancers: TopFreelancer[]; totalCount: number; totalPages: number; page: number };
 
@@ -644,6 +653,7 @@ export async function searchFreelancers(
           ratingCount: g.ratingCount,
           isCertified: g.isCertified,
           sellerLevel: g.sellerLevel ?? "New Seller",
+          avatarUrl: null,
         });
       }
       return acc;
@@ -696,6 +706,7 @@ export async function searchFreelancers(
       ratingCount: p.ratingCount,
       isCertified: p.isCertified,
       sellerLevel: p.ratingAvg >= 4.8 && p.ratingCount >= 10 ? "Top Rated Seller" : p.projectsCompleted >= 5 ? "Level 2 Seller" : "New Seller",
+      avatarUrl: p.user.avatarUrl ?? null,
     }));
     return { freelancers, totalCount, totalPages: Math.max(1, Math.ceil(totalCount / PAGE_SIZE)), page: safePage };
   } catch {
@@ -716,6 +727,7 @@ export async function getTopFreelancers(): Promise<TopFreelancer[]> {
             ratingCount: g.ratingCount,
             isCertified: g.isCertified,
             sellerLevel: g.sellerLevel ?? "New Seller",
+            avatarUrl: null,
           });
         }
         return acc;
@@ -737,6 +749,7 @@ export async function getTopFreelancers(): Promise<TopFreelancer[]> {
       ratingCount: p.ratingCount,
       isCertified: p.isCertified,
       sellerLevel: sellerLevelFor(p.ratingCount),
+      avatarUrl: p.user.avatarUrl ?? null,
     }));
   } catch {
     return [];

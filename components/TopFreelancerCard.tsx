@@ -10,8 +10,12 @@ export default function TopFreelancerCard({ freelancer }: { freelancer: TopFreel
           Top Seller
         </span>
       )}
-      <div className="w-14 h-14 rounded-full bg-neutral-800 text-white flex items-center justify-center font-bold text-lg mx-auto mb-3 mt-2">
-        {freelancer.name.charAt(0)}
+      <div className="w-14 h-14 rounded-full bg-neutral-800 text-white flex items-center justify-center font-bold text-lg mx-auto mb-3 mt-2 overflow-hidden">
+        {freelancer.avatarUrl ? (
+          <img src={freelancer.avatarUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          freelancer.name.charAt(0)
+        )}
       </div>
       <p className="text-sm font-bold text-neutral-900">{freelancer.name}</p>
       <p className="text-xs text-neutral-500 mb-1 line-clamp-1">{freelancer.headline}</p>
