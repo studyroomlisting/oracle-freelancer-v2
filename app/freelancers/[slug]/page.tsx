@@ -161,6 +161,7 @@ export default async function FreelancerProfilePage({ params }: { params: { slug
                   sessionStartAt: g.sessionStartAt,
                   maxSeats: g.maxSeats,
                   seatsBooked: g.seatsBooked,
+                  coverImageUrl: g.coverImageUrl ?? null,
                 }}
               />
             ))}
