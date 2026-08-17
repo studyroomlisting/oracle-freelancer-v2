@@ -29,6 +29,16 @@ async function POSTHandler(req: NextRequest, { params }: { params: { id: string;
   if (milestone.status !== "PENDING" && milestone.status !== "IN_PROGRESS") {
     throw new ApiError("This milestone has already been submitted or approved", 409);
   }
+  // FIXED (real bug found during review): nothing here checked
+  // order.status — a freelancer could mark a milestone "delivered" while
+  // the order was still PENDING_ACCEPTANCE (before they'd even accepted
+  // it) or PENDING_PAYMENT. That leaves an inconsistent state: the
+  // milestone says SUBMITTED (client sees an "Approve" button) while the
+  // order itself is stuck showing "Awaiting freelancer acceptance" —
+  // work delivered on an order that was never actually accepted.
+  if (order.status !== "IN_PROGRESS" && order.status !== "IN_REVISION") {
+    throw new ApiError("Accept the order before submitting delivered work", 409);
+  }
 
   const updated = await prisma.milestone.update({
     where: { id: milestone.id },

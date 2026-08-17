@@ -9,10 +9,12 @@ export default function MilestoneActions({
   orderId,
   milestone,
   viewerRole,
+  orderStatus,
 }: {
   orderId: string;
   milestone: Milestone;
   viewerRole: "client" | "provider" | null;
+  orderStatus?: string;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -77,7 +79,16 @@ export default function MilestoneActions({
     }
   }
 
-  const canSubmit = viewerRole === "provider" && (milestone.status === "PENDING" || milestone.status === "IN_PROGRESS");
+  // FIXED (real bug found during review, UI side): matched to the same
+  // server-side guard added in the submit route — canSubmit only checked
+  // milestone.status, so "Mark delivered" showed and was clickable even
+  // while the order itself was still PENDING_ACCEPTANCE. orderStatus is
+  // optional (older callers not updated stay exactly as before, no
+  // regression) — when provided, it's now part of the gate.
+  const canSubmit =
+    viewerRole === "provider" &&
+    (milestone.status === "PENDING" || milestone.status === "IN_PROGRESS") &&
+    (orderStatus === undefined || orderStatus === "IN_PROGRESS" || orderStatus === "IN_REVISION");
   const canApprove = viewerRole === "client" && milestone.status === "SUBMITTED";
 
   return (
@@ -97,6 +108,11 @@ export default function MilestoneActions({
           {loading ? "Submitting..." : "Mark delivered"}
         </button>
       )}
+      {viewerRole === "provider" &&
+        (milestone.status === "PENDING" || milestone.status === "IN_PROGRESS") &&
+        orderStatus === "PENDING_ACCEPTANCE" && (
+          <p className="text-[11px] text-neutral-400">Accept the order above before delivering</p>
+        )}
       {canApprove && !requestingRevision && (
         <div className="flex gap-2">
           <button onClick={approve} disabled={loading} className="btn-primary py-1.5 px-3 text-xs">

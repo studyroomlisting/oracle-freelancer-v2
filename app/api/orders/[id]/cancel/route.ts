@@ -53,7 +53,7 @@ async function POSTHandler(req: NextRequest, { params }: { params: { id: string 
           userId: order.clientId,
           type: "REFUND",
           status: "SUCCEEDED",
-          amountGbp: order.totalPriceGbp,
+          amountGbp: Number(order.totalPriceGbp) + Number(order.clientServiceFeeGbp),
           reference: `cancel_refund_${order.id.slice(-8)}`,
         },
       });

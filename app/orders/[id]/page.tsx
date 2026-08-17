@@ -180,6 +180,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
               orderId={order.id}
               milestone={{ id: m.id, title: m.title, amountGbp: Number(m.amountGbp), status: m.status, revisionNote: m.revisionNote }}
               viewerRole={viewerRole}
+              orderStatus={order.status}
             />
           </div>
         ))}
