@@ -42,11 +42,6 @@ export default function LoginPage({ searchParams }: { searchParams: { registered
           Log in
         </button>
       </form>
-      <p className="text-sm text-neutral-500 mt-4 text-center">
-        <a href="/auth/magic-link/request" className="text-brand-600 hover:underline">
-          Sign in with an email link instead
-        </a>
-      </p>
 
       <div className="mt-8 pt-6 border-t border-neutral-200 text-center">
         <p className="text-sm text-neutral-600 mb-3">New to OracleGigs?</p>
