@@ -30,6 +30,22 @@ export default function VerifyPage() {
 
   useEffect(() => {
     async function run() {
+      // FIXED (real bug found during review): this page originally only
+      // checked the URL's hash fragment (#access_token=...), based on
+      // Supabase's default hosted-verify redirect behavior. In practice,
+      // this project's confirmation links come back with a `?code=...`
+      // QUERY param instead (visible in server logs, unlike a hash
+      // fragment) — the same PKCE-style code /auth/callback already
+      // knows how to exchange for Google sign-in. Rather than duplicate
+      // that exchange logic here, just hand off to the already-proven
+      // route, preserving every query param (code, type, role, etc.)
+      // exactly as received.
+      const code = new URLSearchParams(window.location.search).get("code");
+      if (code) {
+        window.location.replace(`/auth/callback${window.location.search}`);
+        return;
+      }
+
       const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash;
       const params = new URLSearchParams(hash);
       const access_token = params.get("access_token");
