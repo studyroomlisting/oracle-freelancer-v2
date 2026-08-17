@@ -60,13 +60,17 @@ async function POSTHandler(req: NextRequest) {
     email,
     password,
     options: {
-      emailRedirectTo: new URL("/auth/callback", req.url).toString(),
-      // FIXED (real gap found during review): signUp() never passed the
-      // name anywhere — Supabase's own Auth dashboard showed "Display
-      // name: blank" for every registered user because nothing was ever
-      // written to auth user_metadata (this app's own `fullName` on the
-      // Prisma User row is a separate thing Supabase's dashboard can't
-      // see at all).
+      // FIXED (real bug found during review): pointed at /auth/verify
+      // instead of /auth/callback — see that page for the full reason.
+      // Short version: the default "Confirm signup" email always sends
+      // the session back as a URL hash fragment, which only a
+      // CLIENT-SIDE page can read; a server route like /auth/callback
+      // never receives it at all. Editing the email template to avoid
+      // this requires custom SMTP to be configured first (a Supabase
+      // dashboard restriction, not something this codebase controls),
+      // so this is the code-only fix that works with the default
+      // template as-is.
+      emailRedirectTo: new URL("/auth/verify", req.url).toString(),
       data: { full_name: fullName },
     },
   });

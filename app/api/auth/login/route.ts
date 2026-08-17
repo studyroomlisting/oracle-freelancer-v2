@@ -51,6 +51,19 @@ async function POSTHandler(req: NextRequest) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
+    // FIXED (real bug found during review): every Supabase sign-in error
+    // — wrong password, AND "email not confirmed" — was collapsed into
+    // the same generic "Invalid email or password" message. If the
+    // confirmation link never actually completed (see app/auth/confirm),
+    // this told the person their PASSWORD was wrong, when the real
+    // problem was their email still isn't confirmed — sending them off
+    // to retype a password that was correct all along.
+    if (error.message.toLowerCase().includes("email not confirmed")) {
+      return NextResponse.json(
+        { error: "Your email isn't verified yet. Check your inbox for the confirmation link, or use \"Forgot password?\" to get a new one sent." },
+        { status: 401 }
+      );
+    }
     if (user) {
       // FIXED (milestone review, Medium — concurrency bug): atomic
       // `increment` at the database level, not a read-then-write in JS,
