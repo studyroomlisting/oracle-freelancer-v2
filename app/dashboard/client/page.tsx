@@ -7,6 +7,8 @@ import EmailVerificationBanner from "@/components/EmailVerificationBanner";
 import ProfileCompletionCard from "@/components/ProfileCompletionCard";
 import GigCard from "@/components/GigCard";
 import ProjectLifecycleActions from "@/components/ProjectLifecycleActions";
+import DashboardShell from "@/components/dashboard/DashboardShell";
+import DashboardStatCard from "@/components/dashboard/DashboardStatCard";
 import { calculateClientCompletion } from "@/lib/onboarding";
 import { getRecommendedGigs } from "@/lib/queries";
 
@@ -73,9 +75,39 @@ export default async function ClientDashboard() {
   const recommendedGigs = await getRecommendedGigs(session.sub);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
+    <DashboardShell
+      role="CLIENT"
+      greeting={`Welcome back, ${currentUser?.fullName?.split(" ")[0] ?? "there"} 👋`}
+      subtitle="Here's what's happening with your Oracle projects."
+      actions={
+        <>
+          <Link href="/dashboard/payments" className="btn-secondary">
+            Payment history
+          </Link>
+          <Link href="/dashboard/client/profile" className="btn-secondary">
+            Company profile
+          </Link>
+          <Link href="/projects/new" className="btn-primary">
+            + Post Requirement
+          </Link>
+        </>
+      }
+    >
       <EmailVerificationBanner isVerified={isEmailVerified} />
       {completion && <ProfileCompletionCard percent={completion.percent} missing={completion.missing} editHref="/dashboard/client/profile" />}
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <DashboardStatCard icon="🧾" value={orders.length} label="Gig orders" color="green" href="/dashboard/client/orders" />
+        <DashboardStatCard icon="👥" value={teamOrders.length} label="Team requests" color="blue" />
+        <DashboardStatCard icon="📋" value={projectPostings.length} label="Posted projects" color="orange" href="/projects" />
+        <DashboardStatCard
+          icon="✅"
+          value={projectPostings.filter((p: any) => p.status === "OPEN" || p.status === "AWARDED").length}
+          label="Active projects"
+          color="purple"
+        />
+      </div>
+
       {recommendedGigs.length > 0 && (
         <div className="mb-8">
           <h2 className="text-sm font-bold text-neutral-900 mb-3">Recommended for you</h2>
@@ -86,19 +118,9 @@ export default async function ClientDashboard() {
           </div>
         </div>
       )}
+
       <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
-        <h1 className="text-xl font-semibold text-neutral-900">Your orders</h1>
-        <div className="flex gap-2">
-          <Link href="/dashboard/payments" className="btn-secondary">
-            Payment history
-          </Link>
-          <Link href="/dashboard/client/profile" className="btn-secondary">
-            Company profile
-          </Link>
-          <Link href="/projects/new" className="btn-secondary">
-            Post Requirement
-          </Link>
-        </div>
+        <h2 className="text-lg font-semibold text-neutral-900">Your orders</h2>
       </div>
 
       {hasNothing ? (
@@ -188,6 +210,6 @@ export default async function ClientDashboard() {
           )}
         </>
       )}
-    </div>
+    </DashboardShell>
   );
 }

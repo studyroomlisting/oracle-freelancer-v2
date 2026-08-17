@@ -10,6 +10,8 @@ import PendingProjectsList, { type PendingProject } from "@/components/PendingPr
 import DisputedOrdersList, { type DisputedOrder } from "@/components/DisputedOrdersList";
 import { getPlatformReport } from "@/lib/analytics";
 import EarningsChart from "@/components/EarningsChart";
+import DashboardShell from "@/components/dashboard/DashboardShell";
+import DashboardStatCard from "@/components/dashboard/DashboardStatCard";
 
 // FIXED (Milestone 18, CRITICAL — real vulnerability found, not a
 // hypothetical): this page had NO role check at all — not even a bare
@@ -83,28 +85,21 @@ export default async function AdminDashboard() {
   }));
 
   return (
-    <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h1 className="text-xl font-semibold text-neutral-900">Admin</h1>
-        <div className="flex gap-2">
+    <DashboardShell
+      role="ADMIN"
+      greeting="Welcome back, Admin 👋"
+      subtitle="Approvals, disputes, and platform health at a glance."
+      actions={
+        <>
           <Link href="/dashboard/admin/reports" className="btn-secondary">
             Reports
           </Link>
-          <Link href="/dashboard/admin/gigs" className="btn-secondary">
-            Manage gigs
-          </Link>
-          <Link href="/dashboard/admin/projects" className="btn-secondary">
-            Manage projects
-          </Link>
-          <Link href="/dashboard/admin/team-orders" className="btn-secondary">
-            Team requests
-          </Link>
-          <Link href="/dashboard/admin/users" className="btn-secondary">
+          <Link href="/dashboard/admin/users" className="btn-primary">
             Manage users
           </Link>
-        </div>
-      </div>
-
+        </>
+      }
+    >
       {getActiveStorageMode() === "local-disk" && (
         <div className="mb-6 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded p-3">
           File storage is running on local disk — this breaks on Vercel/serverless. Set the <code>S3_*</code> env vars
@@ -113,26 +108,11 @@ export default async function AdminDashboard() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-10">
-        <div className="card p-5">
-          <p className="text-xs text-neutral-500">Pending gig reviews</p>
-          <p className="text-2xl font-semibold text-neutral-900 mt-1">{pendingGigs.length}</p>
-        </div>
-        <div className="card p-5">
-          <p className="text-xs text-neutral-500">Pending project reviews</p>
-          <p className="text-2xl font-semibold text-neutral-900 mt-1">{pendingProjects.length}</p>
-        </div>
-        <div className="card p-5">
-          <p className="text-xs text-neutral-500">Pending team reviews</p>
-          <p className="text-2xl font-semibold text-neutral-900 mt-1">{pendingTeams.length}</p>
-        </div>
-        <div className="card p-5">
-          <p className="text-xs text-neutral-500">Certification requests</p>
-          <p className="text-2xl font-semibold text-neutral-900 mt-1">{pendingCerts.length}</p>
-        </div>
-        <div className="card p-5">
-          <p className="text-xs text-neutral-500">Open disputes</p>
-          <p className="text-2xl font-semibold text-neutral-900 mt-1">{disputedOrders.length}</p>
-        </div>
+        <DashboardStatCard icon="🧰" value={pendingGigs.length} label="Pending gig reviews" color="green" href="/dashboard/admin/gigs" />
+        <DashboardStatCard icon="📋" value={pendingProjects.length} label="Pending project reviews" color="blue" href="/dashboard/admin/projects" />
+        <DashboardStatCard icon="👥" value={pendingTeams.length} label="Pending team reviews" color="orange" />
+        <DashboardStatCard icon="🎓" value={pendingCerts.length} label="Certification requests" color="purple" />
+        <DashboardStatCard icon="⚠️" value={disputedOrders.length} label="Open disputes" color="red" />
       </div>
 
       {report && (
@@ -179,6 +159,6 @@ export default async function AdminDashboard() {
 
       <h2 className="text-sm font-semibold text-neutral-900 mt-10 mb-3">Certification verification</h2>
       <PendingCertificationsList initialCertifications={pendingCerts} />
-    </div>
+    </DashboardShell>
   );
 }

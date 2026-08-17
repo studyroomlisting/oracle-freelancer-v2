@@ -13,6 +13,8 @@ import { calculateFreelancerCompletion } from "@/lib/onboarding";
 import { getWalletSummary, calculateAvailableBalance } from "@/lib/wallet";
 import { getFreelancerEarningsByMonth } from "@/lib/analytics";
 import EarningsChart from "@/components/EarningsChart";
+import DashboardShell from "@/components/dashboard/DashboardShell";
+import DashboardStatCard from "@/components/dashboard/DashboardStatCard";
 
 const gigStatusLabels: Record<string, string> = {
   DRAFT: "Draft",
@@ -116,18 +118,34 @@ export default async function FreelancerDashboard({
   const earningsByMonth = process.env.DATABASE_URL ? await getFreelancerEarningsByMonth(session.sub) : null;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
+    <DashboardShell
+      role="FREELANCER"
+      greeting={`Welcome back, ${currentUser?.fullName?.split(" ")[0] ?? "there"} 👋`}
+      subtitle="Your gigs, orders and teams, all in one place."
+      actions={
+        <>
+          <Link href="/dashboard/payments" className="btn-secondary">
+            Payment history
+          </Link>
+          <Link href="/dashboard/freelancer/profile" className="btn-secondary">
+            Edit profile
+          </Link>
+          <Link href="/dashboard/freelancer/gigs/new" className="btn-primary">
+            + Create gig
+          </Link>
+        </>
+      }
+    >
       <EmailVerificationBanner isVerified={isEmailVerified} />
       {completion && <ProfileCompletionCard percent={completion.percent} missing={completion.missing} editHref="/dashboard/freelancer/profile" />}
-      {walletSummary && (
-        <Link href="/dashboard/payments" className="card p-4 mb-6 flex items-center justify-between hover:bg-neutral-50">
-          <div>
-            <p className="text-xs text-neutral-500">Available balance</p>
-            <p className="text-xl font-bold text-brand-700">£{walletAvailable.toFixed(2)}</p>
-          </div>
-          <span className="text-xs font-semibold text-brand-700">View wallet →</span>
-        </Link>
-      )}
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <DashboardStatCard icon="🧰" value={gigs.filter((g) => g.status === "ACTIVE").length} label="Active gigs" color="green" />
+        <DashboardStatCard icon="🧾" value={orders.length} label="Recent orders" color="blue" href="/dashboard/freelancer/orders" />
+        <DashboardStatCard icon="👥" value={teamsLed.length} label="Teams you lead" color="orange" />
+        <DashboardStatCard icon="💷" value={walletSummary ? `£${walletAvailable.toFixed(0)}` : "£0"} label="Available balance" color="purple" href="/dashboard/payments" />
+      </div>
+
       {earningsByMonth && (
         <div className="card p-4 mb-6">
           <p className="text-sm font-bold text-neutral-900 mb-2">Earnings, last 6 months</p>
@@ -146,25 +164,13 @@ export default async function FreelancerDashboard({
       )}
 
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-xl font-semibold text-neutral-900">Your gigs</h1>
+        <h2 className="text-lg font-semibold text-neutral-900">Your gigs</h2>
         <div className="flex gap-2 flex-wrap">
-          <Link href="/dashboard/payments" className="btn-secondary">
-            Payment history
-          </Link>
-          <Link href="/projects" className="btn-secondary">
-            Browse projects
-          </Link>
-          <Link href="/dashboard/freelancer/profile" className="btn-secondary">
-            Edit profile
-          </Link>
-          <Link href="/dashboard/freelancer/subscription" className="btn-secondary">
+          <Link href="/dashboard/freelancer/subscription" className="btn-secondary text-sm">
             Subscription
           </Link>
-          <Link href="/dashboard/freelancer/availability" className="btn-secondary">
+          <Link href="/dashboard/freelancer/availability" className="btn-secondary text-sm">
             Availability
-          </Link>
-          <Link href="/dashboard/freelancer/gigs/new" className="btn-primary">
-            Create gig
           </Link>
         </div>
       </div>
@@ -365,6 +371,6 @@ export default async function FreelancerDashboard({
         "Oracle Certified" badge.
       </p>
       <SubmitCertificationForm />
-    </div>
+    </DashboardShell>
   );
 }
