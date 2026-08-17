@@ -47,18 +47,33 @@ export default async function HomePage() {
           </form>
           <div className="mt-6 flex items-center gap-6 flex-wrap">
             <div className="flex -space-x-2.5">
-              {["P", "D", "G", "A"].map((letter) => (
-                <div key={letter} className="w-9 h-9 rounded-full bg-neutral-700 border-2 border-deep text-white text-xs font-bold flex items-center justify-center">
-                  {letter}
-                </div>
-              ))}
+              {platformStats.previewFreelancers.length > 0
+                ? platformStats.previewFreelancers.map((f: { name: string; avatarUrl: string | null }, i: number) => (
+                    <div
+                      key={i}
+                      className="w-9 h-9 rounded-full bg-neutral-700 border-2 border-deep text-white text-xs font-bold flex items-center justify-center overflow-hidden"
+                    >
+                      {f.avatarUrl ? (
+                        <img src={f.avatarUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        f.name.charAt(0)
+                      )}
+                    </div>
+                  ))
+                : ["P", "D", "G", "A"].map((letter) => (
+                    <div key={letter} className="w-9 h-9 rounded-full bg-neutral-700 border-2 border-deep text-white text-xs font-bold flex items-center justify-center">
+                      {letter}
+                    </div>
+                  ))}
             </div>
             <p className="text-xs text-emerald-100">
-              <span className="block text-base font-bold text-white">420+</span>
+              <span className="block text-base font-bold text-white">{platformStats.verifiedFreelancerCount}+</span>
               Verified Oracle consultants
             </p>
             <p className="text-xs text-emerald-100">
-              <span className="block text-base font-bold text-white">4.9 ★★★★★</span>
+              <span className="block text-base font-bold text-white">
+                {platformStats.averageRating > 0 ? platformStats.averageRating.toFixed(1) : "New"} {platformStats.averageRating > 0 && "★★★★★"}
+              </span>
               Average rating
             </p>
           </div>
