@@ -610,6 +610,12 @@ model Order {
   status          OrderStatus   @default(PENDING_PAYMENT)
   totalPriceGbp   Decimal       @db.Decimal(10, 2)
   platformFeeGbp  Decimal       @db.Decimal(10, 2)
+  // ADDED: the 5.5% buyer/service fee charged on TOP of totalPriceGbp —
+  // separate from platformFeeGbp (which comes OUT of the freelancer's
+  // payout, unaffected by this). totalPriceGbp keeps its existing
+  // meaning everywhere it's already used (freelancer payout, milestones,
+  // VAT) — this is purely additive, what the client pays on top.
+  clientServiceFeeGbp Decimal   @default(0) @db.Decimal(10, 2)
   stripePaymentId String?
   // FIXED (Milestone 10 gap): no tax/VAT concept existed anywhere. Prices
   // are treated as VAT-inclusive (what the client already pays doesn't

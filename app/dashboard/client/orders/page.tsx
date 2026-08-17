@@ -80,7 +80,7 @@ export default async function ClientOrderHistoryPage({ searchParams }: { searchP
                 <div>
                   <p className="text-sm font-medium text-neutral-900">{o.gig.title}</p>
                   <p className="text-xs text-neutral-500">
-                    {o.gigPackage.title} · £{Number(o.totalPriceGbp).toFixed(2)}
+                    {o.gigPackage.title} · £{(Number(o.totalPriceGbp) + Number(o.clientServiceFeeGbp)).toFixed(2)}
                     {o.scheduledAt && (
                       <span> · {new Date(o.scheduledAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} UTC</span>
                     )}

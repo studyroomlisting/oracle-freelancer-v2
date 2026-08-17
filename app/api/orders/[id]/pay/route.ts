@@ -52,7 +52,7 @@ async function POSTHandler(req: NextRequest, { params }: { params: { id: string 
         userId: session.sub,
         type: "PAYMENT",
         status: "FAILED",
-        amountGbp: order.totalPriceGbp,
+        amountGbp: Number(order.totalPriceGbp) + Number(order.clientServiceFeeGbp),
         failureReason: "Simulated failure for testing — card declined",
       },
     });
@@ -77,7 +77,7 @@ async function POSTHandler(req: NextRequest, { params }: { params: { id: string 
       userId: session.sub,
       type: "PAYMENT",
       status: "SUCCEEDED",
-      amountGbp: order.totalPriceGbp,
+      amountGbp: Number(order.totalPriceGbp) + Number(order.clientServiceFeeGbp),
       reference,
     },
   });
@@ -100,7 +100,7 @@ async function POSTHandler(req: NextRequest, { params }: { params: { id: string 
 
   await sendEmail({
     to: order.client.email,
-    ...emailTemplates.orderConfirmed({ gigTitle: order.gig.title, totalGbp: Number(order.totalPriceGbp) }),
+    ...emailTemplates.orderConfirmed({ gigTitle: order.gig.title, totalGbp: Number(order.totalPriceGbp) + Number(order.clientServiceFeeGbp) }),
   });
 
   return NextResponse.json({ order: updated });

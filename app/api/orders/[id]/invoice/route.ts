@@ -75,7 +75,8 @@ async function GETHandler(req: NextRequest, { params }: { params: { id: string }
   draw("Amount", { size: 13, f: bold, gap: 18 });
   draw(`Net: £${netAmountGbp.toFixed(2)}`);
   draw(`VAT (${order.vatRatePercent}%): £${vatAmountGbp.toFixed(2)}`);
-  draw(`Total paid: £${Number(order.totalPriceGbp).toFixed(2)}`, { f: bold, gap: 24 });
+  draw(`Service fee (5.5%): £${Number(order.clientServiceFeeGbp).toFixed(2)}`);
+  draw(`Total paid: £${(Number(order.totalPriceGbp) + Number(order.clientServiceFeeGbp)).toFixed(2)}`, { f: bold, gap: 24 });
 
   draw("This is a platform-generated invoice for a simulated payment — real", { size: 9, color: [0.4, 0.4, 0.4] });
   draw("Stripe payment processing is not yet connected on this deployment.", { size: 9, color: [0.4, 0.4, 0.4] });

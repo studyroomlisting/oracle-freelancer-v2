@@ -9,6 +9,12 @@
 // client components (e.g. TeamBuilder.tsx) as well as server routes.
 
 export const PLATFORM_FEE_RATE = 0.2; // 20% commission, matches the revenue-model doc
+// ADDED: Fiverr-style buyer/service fee, charged to the CLIENT on top of
+// the listed price — separate revenue stream from PLATFORM_FEE_RATE
+// above, which comes out of the freelancer's payout instead. The two
+// never overlap: the freelancer's payout math (calculateNetPayout below)
+// is completely unaffected by this constant.
+export const CLIENT_SERVICE_FEE_RATE = 0.055; // 5.5%, matches Fiverr's buyer fee
 export const WORKING_DAYS_PER_WEEK = 5;
 // FIXED (Milestone 10 gap): no tax/VAT concept existed anywhere. UK
 // standard VAT rate. Prices are treated as VAT-inclusive — this extracts
@@ -34,6 +40,16 @@ export function calculatePlatformFee(totalPriceGbp: number, rate: number = PLATF
 /** What the freelancer/team actually receives after the platform fee. */
 export function calculateNetPayout(totalPriceGbp: number, rate: number = PLATFORM_FEE_RATE): number {
   return roundToPence(totalPriceGbp - calculatePlatformFee(totalPriceGbp, rate));
+}
+
+/** The buyer/service fee charged to the CLIENT, on top of totalPriceGbp. */
+export function calculateClientServiceFee(totalPriceGbp: number, rate: number = CLIENT_SERVICE_FEE_RATE): number {
+  return roundToPence(totalPriceGbp * rate);
+}
+
+/** What the client actually pays: the listed price plus the service fee. */
+export function calculateClientPayableTotal(totalPriceGbp: number, rate: number = CLIENT_SERVICE_FEE_RATE): number {
+  return roundToPence(totalPriceGbp + calculateClientServiceFee(totalPriceGbp, rate));
 }
 
 /** Total estimated cost for a team engagement: day rate × weeks × working days/week. */

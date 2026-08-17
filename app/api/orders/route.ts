@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { requireAnySession } from "@/lib/auth";
 import { checkTrainingSessionConflict } from "@/lib/availability";
-import { calculatePlatformFee } from "@/lib/pricing";
+import { calculatePlatformFee, calculateClientServiceFee } from "@/lib/pricing";
 import { canBookSeats, seatsRemaining } from "@/lib/businessRules";
 import { withErrorHandling } from "@/lib/api/withErrorHandling";
 import { SeatUnavailableError, ScheduleConflictError } from "@/lib/api/errors";
@@ -102,6 +102,7 @@ async function POSTHandler(req: NextRequest) {
 
   const totalPriceGbp = Number(gigPackage.priceGbp) * seatCount + extrasTotal;
   const platformFeeGbp = calculatePlatformFee(totalPriceGbp);
+  const clientServiceFeeGbp = calculateClientServiceFee(totalPriceGbp);
   const milestoneTitle = isWorkshop ? "Workshop seat confirmation" : isTraining ? "Training session delivery" : "Full delivery";
   const extrasSnapshot = extras.map((e) => ({ title: e.title, priceGbp: Number(e.priceGbp) }));
 
@@ -167,6 +168,7 @@ async function POSTHandler(req: NextRequest) {
         status: "PENDING_PAYMENT",
         totalPriceGbp,
         platformFeeGbp,
+        clientServiceFeeGbp,
         scheduledAt: sessionStart,
         scheduledEndAt: sessionEnd,
         extrasSnapshot: extrasSnapshot.length > 0 ? extrasSnapshot : undefined,

@@ -112,11 +112,19 @@ export default async function OrderDetailPage({ params, searchParams }: { params
           </div>
         )}
         <div className="flex justify-between text-sm">
-          <span className="text-neutral-500">Total paid</span>
+          <span className="text-neutral-500">Subtotal</span>
           <span className="font-semibold text-neutral-900">£{Number(order.totalPriceGbp).toFixed(2)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-neutral-500">Platform fee (20%)</span>
+          <span className="text-neutral-500">Service fee (5.5%)</span>
+          <span className="text-neutral-600">£{Number(order.clientServiceFeeGbp).toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between text-sm pt-2 border-t border-neutral-200">
+          <span className="text-neutral-700 font-semibold">You pay</span>
+          <span className="font-bold text-neutral-900">£{(Number(order.totalPriceGbp) + Number(order.clientServiceFeeGbp)).toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-neutral-500">Platform fee (20%, from freelancer's payout)</span>
           <span className="text-neutral-600">£{Number(order.platformFeeGbp).toFixed(2)}</span>
         </div>
       </div>
