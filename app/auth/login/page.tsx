@@ -2,12 +2,18 @@ import { cookies } from "next/headers";
 import { CSRF_COOKIE_NAME } from "@/lib/auth";
 import OAuthButtons from "@/components/OAuthButtons";
 
-export default function LoginPage() {
+export default function LoginPage({ searchParams }: { searchParams: { registered?: string } }) {
   const csrfToken = cookies().get(CSRF_COOKIE_NAME)?.value ?? "";
 
   return (
     <div className="mx-auto max-w-sm px-4 py-16">
       <h1 className="text-xl font-semibold text-neutral-900 mb-6">Log in</h1>
+
+      {searchParams.registered === "1" && (
+        <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded p-3 mb-5">
+          Account created! Check your email for a verification link, then log in below.
+        </div>
+      )}
 
       <OAuthButtons />
 

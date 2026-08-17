@@ -59,7 +59,16 @@ async function POSTHandler(req: NextRequest) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: new URL("/auth/callback", req.url).toString() },
+    options: {
+      emailRedirectTo: new URL("/auth/callback", req.url).toString(),
+      // FIXED (real gap found during review): signUp() never passed the
+      // name anywhere — Supabase's own Auth dashboard showed "Display
+      // name: blank" for every registered user because nothing was ever
+      // written to auth user_metadata (this app's own `fullName` on the
+      // Prisma User row is a separate thing Supabase's dashboard can't
+      // see at all).
+      data: { full_name: fullName },
+    },
   });
 
   if (error || !data.user) {
@@ -82,6 +91,20 @@ async function POSTHandler(req: NextRequest) {
         oracleModules: "",
       },
     });
+  }
+
+  // FIXED (real gap found during review): this always redirected to
+  // /onboarding, silently assuming signUp() had also logged the person
+  // in. That's only true when Supabase's "Confirm email" project setting
+  // is OFF — with it ON (the case here: the account sat as "waiting for
+  // verification" in the Supabase dashboard), `data.session` is null and
+  // no session cookie gets set. /onboarding then requires a session,
+  // bounces to /auth/login, and the person lands there with zero
+  // explanation of what happened or whether their account was even
+  // created — indistinguishable from the registration having silently
+  // failed. `data.session` tells us which case we're actually in.
+  if (!data.session) {
+    return NextResponse.redirect(new URL("/auth/login?registered=1", req.url));
   }
 
   return NextResponse.redirect(new URL("/onboarding", req.url));
