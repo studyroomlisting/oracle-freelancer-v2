@@ -613,22 +613,33 @@ export async function getPlatformStats() {
       _sum: { projectsCompleted: true, budgetDeliveredGbp: true },
       _avg: { successRate: true },
     });
-    // ADDED (real gap found during review): the homepage hero banner's
-    // "420+ Verified Oracle consultants" / "4.9 ★★★★★ Average rating" /
-    // the four "P D G A" initials were all hardcoded literals — not
-    // derived from this function at all, even though this exact function
-    // was already being called on that page for the OTHER stats further
-    // down. Every platform number on the hero is now real.
-    const [verifiedFreelancerCount, ratingAgg, previewProfiles] = await Promise.all([
-      prisma.freelancerProfile.count({ where: { isCertified: true } }),
-      prisma.freelancerProfile.aggregate({ where: { ratingCount: { gt: 0 } }, _avg: { ratingAvg: true } }),
+    // FIXED (real gap found during review): ordering candidates by
+    // ratingCount alone meant a freelancer who'd uploaded a real avatar
+    // but had zero reviews yet could easily lose out to a rated
+    // freelancer with no avatar — so the hero kept showing initials even
+    // though real photos existed. This explicitly prefers freelancers who
+    // HAVE a photo, then only pads with others (falling back to initials
+    // in the UI) if fewer than 4 profiles have one.
+    const [withAvatar, verifiedFreelancerCount, ratingAgg] = await Promise.all([
       prisma.freelancerProfile.findMany({
-        where: { isProfilePublic: true },
+        where: { isProfilePublic: true, user: { avatarUrl: { not: null } } },
         orderBy: { ratingCount: "desc" },
         take: 4,
         include: { user: true },
       }),
+      prisma.freelancerProfile.count({ where: { isCertified: true } }),
+      prisma.freelancerProfile.aggregate({ where: { ratingCount: { gt: 0 } }, _avg: { ratingAvg: true } }),
     ]);
+    let previewProfiles = withAvatar;
+    if (previewProfiles.length < 4) {
+      const fillers = await prisma.freelancerProfile.findMany({
+        where: { isProfilePublic: true, id: { notIn: previewProfiles.map((p: any) => p.id) } },
+        orderBy: { ratingCount: "desc" },
+        take: 4 - previewProfiles.length,
+        include: { user: true },
+      });
+      previewProfiles = [...previewProfiles, ...fillers];
+    }
     const previewFreelancers = previewProfiles.map((p: any) => ({ name: p.user.fullName, avatarUrl: p.user.avatarUrl }));
 
     if (!agg._sum.projectsCompleted) {
