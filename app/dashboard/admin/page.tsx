@@ -131,7 +131,7 @@ export default async function AdminDashboard() {
             <div className="card p-4">
               <p className="text-xs text-neutral-500">Platform revenue (6mo)</p>
               <p className="text-xl font-semibold text-neutral-900">£{report.totalRevenueGbp.toFixed(2)}</p>
-              <p className="text-[11px] text-neutral-400">20% commission on completed payments</p>
+              <p className="text-[11px] text-neutral-400">20% freelancer commission + 5.5% client service fee</p>
             </div>
             <div className="card p-4">
               <p className="text-xs text-neutral-500">Open disputes</p>

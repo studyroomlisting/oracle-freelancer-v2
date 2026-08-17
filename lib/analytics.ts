@@ -251,20 +251,43 @@ export async function getPlatformReport(months: number = 6): Promise<PlatformRep
     prisma.order.count(),
     prisma.order.count({ where: { status: "DISPUTED" } }),
     prisma.transaction.findMany({
-      where: { type: "PAYMENT", status: "SUCCEEDED", createdAt: { gte: since } },
-      select: { amountGbp: true, createdAt: true },
+      where: { type: "PAYMENT", status: "SUCCEEDED", createdAt: { gte: since }, orderId: { not: null } },
+      select: { orderId: true, createdAt: true },
     }),
   ]);
 
-  // Platform revenue = the 20% commission, not the full payment volume —
-  // the full amount belongs to the freelancer, not the platform.
+  // FIXED (real bug found during review): this used to take the
+  // transaction's own amountGbp (the full amount the client paid) and
+  // multiply by 20% — that was correct back when amountGbp WAS just the
+  // gig subtotal. Once the 5.5% client service fee was added, the
+  // PAYMENT transaction's amountGbp became subtotal + service fee, so
+  // this silently started computing 20% of an inflated number — both
+  // undercounting the service-fee revenue entirely AND overstating the
+  // 20% commission itself. Platform revenue is actually two separate
+  // streams: 20% of the gig subtotal (from the freelancer's payout) PLUS
+  // 100% of the service fee (paid straight to the platform by the
+  // client) — computed here from the Order's own stored fields, which
+  // keep the two amounts separate, rather than from the combined
+  // transaction total.
+  const orders = await prisma.order.findMany({
+    where: { id: { in: payments.map((p: { orderId: string | null }) => p.orderId!) } },
+    select: { id: true, totalPriceGbp: true, clientServiceFeeGbp: true },
+  });
+  const orderById = new Map<string, { id: string; totalPriceGbp: any; clientServiceFeeGbp: any }>(
+    orders.map((o: any) => [o.id, o])
+  );
+
   const PLATFORM_FEE_RATE = 0.2;
   const labels = lastNMonthLabels(months);
-  const commissionEntries: { amountGbp: number; createdAt: Date }[] = payments.map((p: { amountGbp: any; createdAt: Date }) => ({
-    amountGbp: Number(p.amountGbp) * PLATFORM_FEE_RATE,
-    createdAt: p.createdAt,
-  }));
-  const totalRevenueGbp = Math.round(commissionEntries.reduce((sum, e) => sum + e.amountGbp, 0) * 100) / 100;
+  const commissionEntries: { amountGbp: number; createdAt: Date }[] = payments
+    .map((p: { orderId: string | null; createdAt: Date }) => {
+      const order = orderById.get(p.orderId!);
+      if (!order) return null;
+      const commission = Number(order.totalPriceGbp) * PLATFORM_FEE_RATE + Number(order.clientServiceFeeGbp);
+      return { amountGbp: commission, createdAt: p.createdAt };
+    })
+    .filter((e: { amountGbp: number; createdAt: Date } | null): e is { amountGbp: number; createdAt: Date } => e !== null);
+  const totalRevenueGbp = Math.round(commissionEntries.reduce((sum, e: { amountGbp: number; createdAt: Date }) => sum + e.amountGbp, 0) * 100) / 100;
   const monthlyRevenue = aggregateAmountsByMonth(commissionEntries, labels);
 
   return {
