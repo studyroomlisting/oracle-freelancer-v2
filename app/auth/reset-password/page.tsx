@@ -3,12 +3,23 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function ResetPasswordPage({ searchParams }: { searchParams: { token?: string } }) {
+// FIXED (real bug found during review): this page used to require a
+// `?token=` query param and post it to a bespoke /api/auth/reset-password
+// route. Supabase's actual link for this project never sends a `token`
+// param at all — see app/api/auth/forgot-password/route.ts for the full
+// reason. The link now routes through /auth/callback first, which
+// exchanges Supabase's `code` for a real (recovery) session — by the time
+// someone lands here, they're genuinely signed in with that session, no
+// token needed. This reuses the already-working, session-based
+// /api/auth/change-password endpoint instead of a second, separate
+// mechanism.
+export default function ResetPasswordPage() {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [invalidLink, setInvalidLink] = useState(false);
   const [success, setSuccess] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -20,14 +31,18 @@ export default function ResetPasswordPage({ searchParams }: { searchParams: { to
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch("/api/auth/reset-password", {
+      const res = await fetch("/api/auth/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: searchParams.token, password }),
+        body: JSON.stringify({ password }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Couldn't reset your password");
+        if (res.status === 401 || res.status === 403) {
+          setInvalidLink(true);
+        } else {
+          setError(data.error ?? "Couldn't reset your password");
+        }
         return;
       }
       setSuccess(true);
@@ -37,11 +52,16 @@ export default function ResetPasswordPage({ searchParams }: { searchParams: { to
     }
   }
 
-  if (!searchParams.token) {
+  if (invalidLink) {
     return (
       <div className="mx-auto max-w-sm px-4 py-16 text-center">
-        <h1 className="text-xl font-semibold text-neutral-900 mb-2">Invalid link</h1>
-        <p className="text-sm text-neutral-500">This reset link is missing its token.</p>
+        <h1 className="text-xl font-semibold text-neutral-900 mb-2">Link expired</h1>
+        <p className="text-sm text-neutral-500 mb-4">
+          This reset link is invalid or has expired. Request a new one below.
+        </p>
+        <a href="/auth/forgot-password" className="btn-secondary">
+          Request a new link
+        </a>
       </div>
     );
   }

@@ -26,7 +26,18 @@ async function POSTHandler(req: NextRequest) {
 
   const supabase = createServerSupabaseClient();
   await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: new URL("/auth/reset-password", req.url).toString(),
+    // FIXED (real bug found during review): this pointed straight at
+    // /auth/reset-password, which only ever understood a `?token=` query
+    // param. This project's actual Supabase config sends the reset link
+    // back with `?code=...&type=recovery` instead — the exact same
+    // `code`-based pattern already proven working for signup
+    // confirmation via /auth/callback (see that route and
+    // lib/authCallbackShared.ts, which already has a `type === "recovery"`
+    // branch that redirects to /auth/reset-password once the code is
+    // exchanged for a real session). Routing through there instead of
+    // straight to reset-password reuses that already-working exchange
+    // rather than a second, broken one.
+    redirectTo: new URL("/auth/callback", req.url).toString(),
   });
 
   return NextResponse.json({ ok: true, message: "If that email is registered, a reset link has been sent." });
