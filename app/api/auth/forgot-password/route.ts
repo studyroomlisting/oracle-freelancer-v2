@@ -46,9 +46,33 @@ async function POSTHandler(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
     { cookies: { getAll: () => [], setAll: () => {} }, auth: { flowType: "implicit" } }
   );
-  await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
     redirectTo: new URL("/auth/verify", req.url).toString(),
   });
+
+  // FIXED (real bug found during review): the result of
+  // resetPasswordForEmail() was thrown away entirely — this always
+  // returned the same generic success message no matter what Supabase
+  // actually did, including when Supabase itself rejected the request
+  // with a 429 "email rate limit exceeded" (its OWN built-in email
+  // service has a strict per-project quota, separate from the `rateLimit`
+  // check above, which only limits requests per IP against THIS route).
+  // The generic message exists to avoid confirming whether a given email
+  // is registered — but a project-wide send-quota error doesn't depend
+  // on which email was submitted at all, so surfacing it plainly here
+  // leaks nothing about any specific account, while silently hiding it
+  // left the person with no way to tell "genuinely sent" apart from
+  // "nothing is coming, and won't, until the quota resets."
+  const isRateLimited =
+    error?.status === 429 ||
+    error?.code === "over_email_send_rate_limit" ||
+    (error?.message ?? "").toLowerCase().includes("rate limit");
+  if (isRateLimited) {
+    return NextResponse.json(
+      { error: "Too many reset emails have been sent from this project recently. Please wait a while and try again." },
+      { status: 429 }
+    );
+  }
 
   return NextResponse.json({ ok: true, message: "If that email is registered, a reset link has been sent." });
 }
