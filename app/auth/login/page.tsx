@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { CSRF_COOKIE_NAME } from "@/lib/auth";
 import OAuthButtons from "@/components/OAuthButtons";
 
-export default function LoginPage({ searchParams }: { searchParams: { registered?: string } }) {
+export default function LoginPage({ searchParams }: { searchParams: { registered?: string; error?: string } }) {
   const csrfToken = cookies().get(CSRF_COOKIE_NAME)?.value ?? "";
 
   return (
@@ -12,6 +12,23 @@ export default function LoginPage({ searchParams }: { searchParams: { registered
       {searchParams.registered === "1" && (
         <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded p-3 mb-5">
           Account created! Check your email for a verification link, then log in below.
+        </div>
+      )}
+
+      {/* FIXED (real gap found during review): ?error=invalid-link was
+          already being sent here by /auth/callback and /auth/confirm
+          whenever a confirmation/recovery link's code exchange failed
+          (expired, already used, or otherwise invalid) — but this page
+          never read it. The person just landed on a plain login form
+          with zero indication anything had gone wrong, indistinguishable
+          from the link having silently done nothing at all. */}
+      {searchParams.error === "invalid-link" && (
+        <div className="bg-red-50 border border-red-200 text-red-800 text-sm rounded p-3 mb-5">
+          That link is invalid or has expired. If you were resetting your password,{" "}
+          <a href="/auth/forgot-password" className="underline font-semibold">
+            request a new reset link
+          </a>
+          .
         </div>
       )}
 
