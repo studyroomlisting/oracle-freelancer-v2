@@ -1,19 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
 import { withErrorHandling } from "@/lib/api/withErrorHandling";
+import { sendEmail, emailTemplates } from "@/lib/email";
+import { prisma } from "@/lib/prisma";
 
 const schema = z.object({ email: z.string().email().max(254) });
 
-// FIXED (Supabase Auth migration): this used to generate its own 1-hour
-// reset token and send a custom email. supabase.auth.resetPasswordForEmail()
-// replaces both — Supabase sends its own reset email (its content/template
-// is configured in the Supabase dashboard now, not this codebase) and
-// manages the token's lifetime itself. The email-enumeration protection
-// (always returning the same success response regardless of whether the
-// account exists) is preserved — this route never reveals whether
-// Supabase's call actually found an account, same as before.
+// FIXED (real bug found during review — third and final attempt, after
+// two that didn't hold up):
+//   1st attempt routed the link through /auth/callback, assuming
+//      resetPasswordForEmail()'s PKCE code would exchange cleanly the
+//      way Google OAuth's does — it didn't; the `code_verifier` cookie
+//      set at request time apparently doesn't reliably survive until the
+//      person actually clicks the email link.
+//   2nd attempt tried flowType: "implicit" to sidestep PKCE entirely —
+//      Supabase's own docs confirm Password Recovery unconditionally
+//      uses PKCE server-side, so that setting had no effect; worse, that
+//      attempt's no-op cookie adapter guaranteed the exchange would fail
+//      100% of the time.
+// Both attempts also inherited Supabase's own built-in email service's
+// strict, easily-exhausted rate limit (a separate thing from the
+// `rateLimit` call below, which only limits requests per IP against THIS
+// route).
+//
+// This version sidesteps the whole problem: it asks Supabase's ADMIN API
+// to generate a recovery link (no email sent by Supabase at all, so its
+// rate limit and PKCE redirect chain are both out of the picture), pulls
+// the token_hash out of that response, builds a link pointing at
+// /auth/confirm (verifyOtp — no cookie/verifier dependency, already
+// proven for signup confirmation), and sends it through this app's own
+// email pipeline (sendEmail), the same one every other transactional
+// email here already uses reliably.
 async function POSTHandler(req: NextRequest) {
   const ip = getClientIp(req);
   const { allowed } = rateLimit(`forgot-password:${ip}`, 5, 15 * 60 * 1000);
@@ -24,46 +43,29 @@ async function POSTHandler(req: NextRequest) {
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "A valid email is required" }, { status: 400 });
 
-  // FIXED (real bug found during review — corrects an earlier, incorrect
-  // fix attempt): Supabase's own docs confirm resetPasswordForEmail()
-  // "supports the PKCE flow" unconditionally — there's no client-side
-  // `flowType` override that changes this for password recovery
-  // specifically, unlike what the previous version of this comment
-  // assumed. Worse, that previous attempt used a Supabase client with a
-  // no-op cookie adapter (`getAll: () => [], setAll: () => {}`), which
-  // meant the PKCE `code_verifier` was never actually stored anywhere —
-  // guaranteeing every single exchange attempt at /auth/callback would
-  // fail, 100% of the time, regardless of anything else. Using the real,
-  // cookie-persisting server client (same one signUp() and Google OAuth
-  // already rely on successfully) is what actually gives the code
-  // exchange a real chance of finding its matching verifier.
-  const supabase = createServerSupabaseClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: new URL("/auth/callback", req.url).toString(),
-  });
+  // Email-enumeration protection: always return the same response
+  // regardless of whether the account exists. We check locally first
+  // (cheap, no external call) purely to decide whether to bother calling
+  // the admin API and sending an email — never to change the response.
+  const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
 
-  // FIXED (real bug found during review): the result of
-  // resetPasswordForEmail() was thrown away entirely — this always
-  // returned the same generic success message no matter what Supabase
-  // actually did, including when Supabase itself rejected the request
-  // with a 429 "email rate limit exceeded" (its OWN built-in email
-  // service has a strict per-project quota, separate from the `rateLimit`
-  // check above, which only limits requests per IP against THIS route).
-  // The generic message exists to avoid confirming whether a given email
-  // is registered — but a project-wide send-quota error doesn't depend
-  // on which email was submitted at all, so surfacing it plainly here
-  // leaks nothing about any specific account, while silently hiding it
-  // left the person with no way to tell "genuinely sent" apart from
-  // "nothing is coming, and won't, until the quota resets."
-  const isRateLimited =
-    error?.status === 429 ||
-    error?.code === "over_email_send_rate_limit" ||
-    (error?.message ?? "").toLowerCase().includes("rate limit");
-  if (isRateLimited) {
-    return NextResponse.json(
-      { error: "Too many reset emails have been sent from this project recently. Please wait a while and try again." },
-      { status: 429 }
-    );
+  if (user) {
+    const supabase = createServiceRoleSupabaseClient();
+    const { data, error } = await supabase.auth.admin.generateLink({
+      type: "recovery",
+      email: parsed.data.email,
+    });
+
+    if (!error && data?.properties?.hashed_token) {
+      const resetUrl = new URL("/auth/confirm", req.url);
+      resetUrl.searchParams.set("token_hash", data.properties.hashed_token);
+      resetUrl.searchParams.set("type", "recovery");
+
+      await sendEmail({
+        to: parsed.data.email,
+        ...emailTemplates.passwordReset({ resetUrl: resetUrl.toString() }),
+      });
+    }
   }
 
   return NextResponse.json({ ok: true, message: "If that email is registered, a reset link has been sent." });

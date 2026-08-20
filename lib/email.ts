@@ -96,6 +96,19 @@ export const emailTemplates = {
     subject: "Your password was changed",
     body: `Your OracleGigs password was just changed. If this wasn't you, contact support immediately.`,
   }),
+  // ADDED (real bug found during review — supersedes the note above):
+  // Supabase's own password-reset email turned out to be genuinely
+  // unreliable for this project — its PKCE-based link consistently
+  // failed to exchange (see app/api/auth/forgot-password/route.ts for
+  // the full history), and its built-in email service has a strict,
+  // easily-exhausted rate limit separate from anything in this app. This
+  // template lets that route generate the reset link itself (via
+  // Supabase's Admin API — no email sent by Supabase at all) and deliver
+  // it through this app's own, already-reliable email pipeline instead.
+  passwordReset: (params: { resetUrl: string }) => ({
+    subject: "Reset your OracleGigs password",
+    body: `We received a request to reset your OracleGigs password. Use the link below to choose a new one — it expires in 1 hour and can only be used once.\n\n${params.resetUrl}\n\nIf you didn't request this, you can safely ignore this email.`,
+  }),
   reviewReceived: (params: { gigTitle: string; rating: number }) => ({
     subject: `New ${params.rating}-star review on "${params.gigTitle}"`,
     body: `A client left a ${params.rating}-star review on "${params.gigTitle}". Log in to see it.`,
